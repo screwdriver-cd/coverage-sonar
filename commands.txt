@@ -1,0 +1,8 @@
+if [ `uname` = 'Darwin' ]; then echo ERROR: coverage feature not implemented && exit 0; fi
+if ![ -f sonar-project.properties ]; then echo "ERROR: No sonar-project.properties file detected." && exit 0; fi
+export SD_CURL_CMD_WRAPPER="$(echo 'sd-step exec --pkg-version 7.54.1 core/curl')"
+export SD_UNZIP_CMD_WRAPPER="$(echo 'sd-step exec --pkg-version 6.0 core/unzip')"
+$SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.1.0.1141-linux.zip"
+$SD_UNZIP_CMD_WRAPPER "unzip -q ./sonarscanner.zip"
+SONAR_TOKEN=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer $SD_TOKEN\" $SD_API_AUTH_URL"`
+sonar-scanner-3.1.0.1141-linux/bin/sonar-scanner -Dsonar.host.url=$SONAR_HOST -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey="job:$SD_JOB_ID" -Dsonar.projectName="$SD_PIPELINE_NAME:$SD_JOB_NAME"

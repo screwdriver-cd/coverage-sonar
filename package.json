@@ -33,9 +33,17 @@
     "chai": "^3.5.0",
     "eslint": "^4.3.0",
     "eslint-config-screwdriver": "^3.0.0",
-    "jenkins-mocha": "^4.0.0"
+    "jenkins-mocha": "^4.0.0",
+    "mockery": "^2.1.0",
+    "sinon": "^5.0.4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "joi": "^13.2.0",
+    "request": "^2.85.0",
+    "request-promise-native": "^1.0.5",
+    "screwdriver-coverage-base": "^1.0.1",
+    "uuid": "^3.2.1"
+  },
   "release": {
     "debug": false,
     "verifyConditions": {
