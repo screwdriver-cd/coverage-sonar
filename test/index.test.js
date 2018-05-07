@@ -54,7 +54,7 @@ describe('index test', () => {
     });
 
     describe('getUploadCoverageCmd', () => {
-        it('it constructs upload coverage command correctly', () => {
+        it('constructs upload coverage command correctly', () => {
             const commandsPath = path.resolve(__dirname, './data/commands.txt');
             const commands = fs.readFileSync(commandsPath, 'utf8').replace('\n', '');
 
@@ -67,7 +67,7 @@ describe('index test', () => {
     describe('getAccessToken', () => {
         const buildCredentials = { jobId: 1 };
 
-        it('it gets an access token successfully', () => {
+        it('gets an access token successfully', () => {
             requestMock.onCall(3).resolves({ token: 'accesstoken' });
 
             return sonarPlugin.getAccessToken(buildCredentials).then((result) => {
@@ -76,7 +76,7 @@ describe('index test', () => {
             });
         });
 
-        it('it gets an access token successfully with existing pipeline', () => {
+        it('gets an access token successfully with existing pipeline', () => {
             requestMock.onCall(0).rejects({
                 statusCode: 400,
                 message: 'Project already exists.'
@@ -89,7 +89,7 @@ describe('index test', () => {
             });
         });
 
-        it('it gets an access token successfully with existing user', () => {
+        it('gets an access token successfully with existing user', () => {
             requestMock.onCall(1).rejects({
                 statusCode: 400,
                 message: 'user already exists.'
@@ -102,26 +102,52 @@ describe('index test', () => {
             });
         });
 
-        it('it throws err if failed to create/locate projects', () => {
+        it('throws err if failed to create/locate projects', () => {
             requestMock.onCall(0).rejects({
                 statusCode: 500,
-                message: 'internal server error'
+                message: '500 - internal server error'
             });
 
             return sonarPlugin.getAccessToken(buildCredentials).then(() => {
                 assert.throws(new Error('should not get here'));
-            }).catch(err => assert.deepEqual(err.statusCode, 500));
+            }).catch(err => assert.deepEqual(err.message,
+                'Failed to create project job:1: 500 - internal server error'));
         });
 
-        it('it throws err if failed to create/locate user', () => {
+        it('throws err if failed to create/locate user', () => {
             requestMock.onCall(1).rejects({
                 statusCode: 500,
-                message: 'internal server error'
+                message: '500 - internal server error'
             });
 
             return sonarPlugin.getAccessToken(buildCredentials).then(() => {
                 assert.throws(new Error('should not get here'));
-            }).catch(err => assert.deepEqual(err.statusCode, 500));
+            }).catch(err => assert.deepEqual(err.message,
+                'Failed to create user user-job-1: 500 - internal server error'));
+        });
+
+        it('throws err if failed to grant user permission', () => {
+            requestMock.onCall(2).rejects({
+                statusCode: 500,
+                message: '500 - internal server error'
+            });
+
+            return sonarPlugin.getAccessToken(buildCredentials).then(() => {
+                assert.throws(new Error('should not get here'));
+            }).catch(err => assert.deepEqual(err.message,
+                'Failed to grant user user-job-1 permission: 500 - internal server error'));
+        });
+
+        it('it throws err if failed to generate user token', () => {
+            requestMock.onCall(3).rejects({
+                statusCode: 500,
+                message: '500 - internal server error'
+            });
+
+            return sonarPlugin.getAccessToken(buildCredentials).then(() => {
+                assert.throws(new Error('should not get here'));
+            }).catch(err => assert.deepEqual(err.message,
+                'Failed to generate user user-job-1 token: 500 - internal server error'));
         });
     });
 });

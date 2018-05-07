@@ -35,7 +35,7 @@ function createProject(projectKey) {
             return {};
         }
 
-        throw err;
+        throw new Error(`Failed to create project ${projectKey}: ${err.message}`);
     });
 }
 
@@ -51,7 +51,7 @@ function createUser(username, password) {
         json: true,
         method: 'POST',
         // eslint-disable-next-line max-len
-        uri: `${sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}&password_confirmation=${password}`,
+        uri: `${sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
         auth: {
             username: adminToken
         }
@@ -60,7 +60,7 @@ function createUser(username, password) {
             return {};
         }
 
-        throw err;
+        throw new Error(`Failed to create user ${username}: ${err.message}`);
     });
 }
 
@@ -81,6 +81,8 @@ function grantUserPermission(username, projectKey) {
         auth: {
             username: adminToken
         }
+    }).catch((err) => {
+        throw new Error(`Failed to grant user ${username} permission: ${err.message}`);
     });
 }
 
@@ -100,6 +102,8 @@ function generateToken(username) {
         auth: {
             username: adminToken
         }
+    }).catch((err) => {
+        throw new Error(`Failed to generate user ${username} token: ${err.message}`);
     });
 }
 
@@ -140,7 +144,7 @@ class CoverageSonar extends CoverageBase {
     _getAccessToken(buildCredentials) {
         const { jobId } = buildCredentials;
         const projectKey = `job:${jobId}`;
-        const username = projectKey;
+        const username = `user-job-${jobId}`;
         const password = uuidv4();
 
         return createProject(projectKey)
