@@ -1,5 +1,5 @@
 {
-  "name": "screwdriver-screwdriver-coverage-sonar",
+  "name": "screwdriver-coverage-sonar",
   "version": "0.0.1",
   "description": "SonarQube implementation of the coverage-base class",
   "main": "index.js",
@@ -10,9 +10,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:screwdriver-cd/screwdriver-coverage-sonar.git"
+    "url": "git@github.com:screwdriver-cd/coverage-sonar.git"
   },
-  "homepage": "https://github.com/screwdriver-cd/screwdriver-coverage-sonar",
+  "homepage": "https://github.com/screwdriver-cd/coverage-sonar",
   "bugs": "https://github.com/screwdriver-cd/screwdriver/issues",
   "keywords": [
     "screwdriver",

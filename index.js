@@ -25,7 +25,8 @@ function createProject(projectKey) {
     return request({
         json: true,
         method: 'POST',
-        uri: `${sonarHost}/api/projects/create?project=${projectKey}&visibility=private`,
+        // eslint-disable-next-line max-len
+        uri: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private`,
         auth: {
             username: adminToken
         }
@@ -136,8 +137,8 @@ class CoverageSonar extends CoverageBase {
      * @param {Object} buildCredentials    Infomation stored in a build JWT
      * @return {Promise}                   An access token that build can use to talk to coverage server
      */
-    _getAccessToken(buildCredentails) {
-        const { jobId } = buildCredentails;
+    _getAccessToken(buildCredentials) {
+        const { jobId } = buildCredentials;
         const projectKey = `job:${jobId}`;
         const username = projectKey;
         const password = uuidv4();
