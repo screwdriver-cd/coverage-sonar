@@ -155,6 +155,19 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
+     * Return links to the Sonar badge and project
+     * @method getLinks
+     * @param   {Object} jobId    Project ID
+     * @return  {Promise}         An object with coverage badge link and project link
+     */
+    _getLinks(jobId) {
+        return Promise.resolve({
+            badge: `${this.config.sonarHost}/api/badges/measure?key=job%3A${jobId}&metric=coverage`,
+            project: `${this.config.sonarHost}/dashboard?id=job%3A${jobId}`
+        });
+    }
+
+    /**
      * Get shell command to upload coverage to server
      * @method _getUploadCoverageCmd
      * @return {Promise}     Shell commands to upload coverage

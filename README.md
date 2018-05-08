@@ -15,6 +15,9 @@ npm install screwdriver-screwdriver-coverage-sonar
 npm test
 ```
 
+## Related Links
+- See [coverage-base](https://github.com/screwdriver-cd/coverage-base)
+
 ## License
 
 Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
