@@ -6,7 +6,7 @@
 ## Usage
 
 ```bash
-npm install screwdriver-screwdriver-coverage-sonar
+npm install screwdriver-coverage-sonar
 ```
 
 ## Testing
@@ -22,13 +22,13 @@ npm test
 
 Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 
-[npm-image]: https://img.shields.io/npm/v/screwdriver-screwdriver-coverage-sonar.svg
-[npm-url]: https://npmjs.org/package/screwdriver-screwdriver-coverage-sonar
-[downloads-image]: https://img.shields.io/npm/dt/screwdriver-screwdriver-coverage-sonar.svg
-[license-image]: https://img.shields.io/npm/l/screwdriver-screwdriver-coverage-sonar.svg
+[npm-image]: https://img.shields.io/npm/v/screwdriver-coverage-sonar.svg
+[npm-url]: https://npmjs.org/package/screwdriver-coverage-sonar
+[downloads-image]: https://img.shields.io/npm/dt/screwdriver-coverage-sonar.svg
+[license-image]: https://img.shields.io/npm/l/screwdriver-coverage-sonar.svg
 [issues-image]: https://img.shields.io/github/issues/screwdriver-cd/screwdriver-coverage-sonar.svg
 [issues-url]: https://github.com/screwdriver-cd/screwdriver-coverage-sonar/issues
-[status-image]: https://cd.screwdriver.cd/pipelines/pipelineid/badge
-[status-url]: https://cd.screwdriver.cd/pipelines/pipelineid
+[status-image]: https://cd.screwdriver.cd/pipelines/706/badge
+[status-url]: https://cd.screwdriver.cd/pipelines/706
 [daviddm-image]: https://david-dm.org/screwdriver-cd/screwdriver-coverage-sonar.svg?theme=shields.io
 [daviddm-url]: https://david-dm.org/screwdriver-cd/screwdriver-coverage-sonar

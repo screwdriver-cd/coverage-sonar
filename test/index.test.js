@@ -66,9 +66,7 @@ describe('index test', () => {
 
     describe('getLinks', () => {
         it('returns links', () => {
-            console.log('links');
-
-            return sonarPlugin.getLinks('1').then(result =>
+            sonarPlugin.getLinks('1').then(result =>
                 assert.deepEqual(result, {
                     badge: `${config.sonarHost}/api/badges/measure?key=job%3A1&metric=coverage`,
                     project: `${config.sonarHost}/dashboard?id=job%3A1`
