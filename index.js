@@ -155,17 +155,22 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
-     * Return links to the Sonar badge and project
-     * @method getLinks
+     * Return links to the Sonar project and coverage metadata
+     * @method getInfo
      * @param   {Object}  config
-     * @param   {String}  config.buildId    Screwdriver build ID
      * @param   {String}  config.jobId      Screwdriver job ID
+     * @param   {String}  config.startTime  Job start time
+     * @param   {String}  config.endTime    Job end time
      * @return  {Promise}                   An object with coverage badge link and project link
      */
-    _getLinks({ jobId }) {
+    _getInfo({ jobId, startTime, endTime }) {
+        // eslint-disable-next-line max-len
+        const coverageUrl = `${this.config.sonarHost}/api/measures/search_history?component=job:${encodeURIComponent(jobId)}&metrics=coverage&from=${encodeURIComponent(startTime)}&to=${encodeURIComponent(endTime)}`;
+        const projectUrl = `${this.config.sonarHost}/dashboard?id=job:${encodeURIComponent(jobId)}`;
+
         return Promise.resolve({
-            badge: `${this.config.sonarHost}/api/badges/measure?key=job%3A${jobId}&metric=coverage`,
-            project: `${this.config.sonarHost}/dashboard?id=job%3A${jobId}`
+            coverage: coverageUrl,
+            project: projectUrl
         });
     }
 

@@ -64,15 +64,18 @@ describe('index test', () => {
         });
     });
 
-    describe('getLinks', () => {
+    describe('getInfo', () => {
         it('returns links', () =>
-            sonarPlugin.getLinks({
+            sonarPlugin.getInfo({
                 buildId: '123',
-                jobId: '1'
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00+0200',
+                endTime: '2017-10-19T15:00:00+0200'
             }).then((result) => {
                 assert.deepEqual(result, {
-                    badge: `${config.sonarHost}/api/badges/measure?key=job%3A1&metric=coverage`,
-                    project: `${config.sonarHost}/dashboard?id=job%3A1`
+                    // eslint-disable-next-line max-len
+                    coverage: `${config.sonarHost}/api/measures/search_history?component=job:1&metrics=coverage&from=2017-10-19T13%3A00%3A00%2B0200&to=2017-10-19T15%3A00%3A00%2B0200`,
+                    project: `${config.sonarHost}/dashboard?id=job:1`
                 });
             })
         );
