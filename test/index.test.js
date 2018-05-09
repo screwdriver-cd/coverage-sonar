@@ -14,6 +14,24 @@ describe('index test', () => {
         sonarHost: 'https://sonar.screwdriver.cd',
         adminToken: 'faketoken'
     };
+    const coverageObject = {
+        paging: {
+            pageIndex: 1,
+            pageSize: 1,
+            total: 4
+        },
+        measures: [
+            {
+                metric: 'coverage',
+                history: [
+                    {
+                        date: '2018-05-08T00:09:53+0000',
+                        value: '98.8'
+                    }
+                ]
+            }
+        ]
+    };
     let SonarPlugin;
     let sonarPlugin;
     let requestMock;
@@ -65,8 +83,10 @@ describe('index test', () => {
     });
 
     describe('getInfo', () => {
-        it('returns links', () =>
-            sonarPlugin.getInfo({
+        it('returns links', () => {
+            requestMock.onCall(0).resolves(coverageObject);
+
+            return sonarPlugin.getInfo({
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00+0200',
@@ -74,11 +94,26 @@ describe('index test', () => {
             }).then((result) => {
                 assert.deepEqual(result, {
                     // eslint-disable-next-line max-len
-                    coverage: `${config.sonarHost}/api/measures/search_history?component=job:1&metrics=coverage&from=2017-10-19T13%3A00%3A00%2B0200&to=2017-10-19T15%3A00%3A00%2B0200`,
-                    project: `${config.sonarHost}/dashboard?id=job:1`
+                    coverage: '98.8',
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`
                 });
-            })
-        );
+            });
+        });
+
+        it('throws err if it fails to get coverage', () => {
+            requestMock.onCall(0).rejects({
+                statusCode: 500,
+                message: '500 - internal server error'
+            });
+
+            return sonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00+0200',
+                endTime: '2017-10-19T15:00:00+0200'
+            }).catch(err => assert.deepEqual(err.message,
+                'Failed to get coverage percentage for job 1: 500 - internal server error'));
+        });
     });
 
     describe('getAccessToken', () => {

@@ -107,6 +107,30 @@ function generateToken(username) {
     });
 }
 
+/**
+ * Get coverage percentage for a build
+ * @method getCoveragePercentage
+ * @param  {String} username   username of the user
+ * @return {Promise}           Object with a token field
+ */
+function getCoveragePercentage({ jobId, startTime, endTime }) {
+    const componentId = encodeURIComponent(`job:${jobId}`);
+    const from = encodeURIComponent(startTime);
+    const to = encodeURIComponent(endTime);
+    // eslint-disable-next-line max-len
+    const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=coverage&from=${from}&to=${to}&ps=1`;
+
+    return request({
+        json: true,
+        method: 'GET',
+        uri: coverageUrl
+    })
+        .then(result => result.measures[0].history[0].value)
+        .catch((err) => {
+            throw new Error(`Failed to get coverage percentage for job ${jobId}: ${err.message}`);
+        });
+}
+
 class CoverageSonar extends CoverageBase {
     /**
      * Constructor
@@ -164,14 +188,14 @@ class CoverageSonar extends CoverageBase {
      * @return  {Promise}                   An object with coverage badge link and project link
      */
     _getInfo({ jobId, startTime, endTime }) {
-        // eslint-disable-next-line max-len
-        const coverageUrl = `${this.config.sonarHost}/api/measures/search_history?component=job:${encodeURIComponent(jobId)}&metrics=coverage&from=${encodeURIComponent(startTime)}&to=${encodeURIComponent(endTime)}`;
-        const projectUrl = `${this.config.sonarHost}/dashboard?id=job:${encodeURIComponent(jobId)}`;
+        const componentId = encodeURIComponent(`job:${jobId}`);
+        const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
 
-        return Promise.resolve({
-            coverage: coverageUrl,
-            project: projectUrl
-        });
+        return getCoveragePercentage({ jobId, startTime, endTime })
+            .then(coveragePercentage => ({
+                coverage: coveragePercentage,
+                projectUrl
+            }));
     }
 
     /**
