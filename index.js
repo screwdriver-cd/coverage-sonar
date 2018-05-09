@@ -107,6 +107,30 @@ function generateToken(username) {
     });
 }
 
+/**
+ * Get coverage percentage for a build
+ * @method getCoveragePercentage
+ * @param  {String} username   username of the user
+ * @return {Promise}           Object with a token field
+ */
+function getCoveragePercentage({ jobId, startTime, endTime }) {
+    const componentId = encodeURIComponent(`job:${jobId}`);
+    const from = encodeURIComponent(startTime);
+    const to = encodeURIComponent(endTime);
+    // eslint-disable-next-line max-len
+    const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=coverage&from=${from}&to=${to}&ps=1`;
+
+    return request({
+        json: true,
+        method: 'GET',
+        uri: coverageUrl
+    })
+        .then(result => result.measures[0].history[0].value)
+        .catch((err) => {
+            throw new Error(`Failed to get coverage percentage for job ${jobId}: ${err.message}`);
+        });
+}
+
 class CoverageSonar extends CoverageBase {
     /**
      * Constructor
@@ -155,16 +179,23 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
-     * Return links to the Sonar badge and project
-     * @method getLinks
-     * @param   {Object} jobId    Project ID
-     * @return  {Promise}         An object with coverage badge link and project link
+     * Return links to the Sonar project and coverage metadata
+     * @method getInfo
+     * @param   {Object}  config
+     * @param   {String}  config.jobId      Screwdriver job ID
+     * @param   {String}  config.startTime  Job start time
+     * @param   {String}  config.endTime    Job end time
+     * @return  {Promise}                   An object with coverage badge link and project link
      */
-    _getLinks(jobId) {
-        return Promise.resolve({
-            badge: `${this.config.sonarHost}/api/badges/measure?key=job%3A${jobId}&metric=coverage`,
-            project: `${this.config.sonarHost}/dashboard?id=job%3A${jobId}`
-        });
+    _getInfo({ jobId, startTime, endTime }) {
+        const componentId = encodeURIComponent(`job:${jobId}`);
+        const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
+
+        return getCoveragePercentage({ jobId, startTime, endTime })
+            .then(coveragePercentage => ({
+                coverage: coveragePercentage,
+                projectUrl
+            }));
     }
 
     /**
