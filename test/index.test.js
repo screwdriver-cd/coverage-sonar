@@ -85,15 +85,18 @@ describe('index test', () => {
     describe('getInfo', () => {
         it('returns links', () => {
             requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*) /)[1]);
 
             return sonarPlugin.getInfo({
                 buildId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00+0200',
-                endTime: '2017-10-19T15:00:00+0200'
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
             }).then((result) => {
-                assert.deepEqual(result, {
+                assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
                     coverage: '98.8',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`
                 });
@@ -109,8 +112,8 @@ describe('index test', () => {
             return sonarPlugin.getInfo({
                 buildId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00+0200',
-                endTime: '2017-10-19T15:00:00+0200'
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
             }).catch(err => assert.deepEqual(err.message,
                 'Failed to get coverage percentage for job 1: 500 - internal server error'));
         });
