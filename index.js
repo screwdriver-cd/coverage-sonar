@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const joi = require('joi');
+const hoek = require('hoek');
 const path = require('path');
 const request = require('request-promise-native');
 const uuidv4 = require('uuid/v4');
@@ -115,17 +116,25 @@ function generateToken(username) {
  */
 function getCoveragePercentage({ jobId, startTime, endTime }) {
     const componentId = encodeURIComponent(`job:${jobId}`);
-    const from = encodeURIComponent(startTime);
-    const to = encodeURIComponent(endTime);
+    // get timezone offset (e.g. -0700) from 'Fri May 11 2018 15:25:37 GMT-0700 (PDT)'
+    const timezoneOffset = new Date().toString().match(/GMT(.*) /)[1];
+    // Convert the time format from 2018-05-10T19:05:53.123Z to 2018-05-10T19:05:53-0700 as required by sonar
+    const parsedStartTime = startTime.replace(/\.(.*)/, timezoneOffset);
+    const parsedEndTime = endTime.replace(/\.(.*)/, timezoneOffset);
+    const from = encodeURIComponent(parsedStartTime);
+    const to = encodeURIComponent(parsedEndTime);
     // eslint-disable-next-line max-len
     const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=coverage&from=${from}&to=${to}&ps=1`;
 
     return request({
         json: true,
         method: 'GET',
-        uri: coverageUrl
+        uri: coverageUrl,
+        auth: {
+            username: adminToken
+        }
     })
-        .then(result => result.measures[0].history[0].value)
+        .then(result => hoek.reach(result, 'measures.0.history.0.value'))
         .catch((err) => {
             throw new Error(`Failed to get coverage percentage for job ${jobId}: ${err.message}`);
         });
