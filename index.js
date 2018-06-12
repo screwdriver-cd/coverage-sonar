@@ -13,7 +13,7 @@ const CoverageBase = require('screwdriver-coverage-base');
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
 
 let adminToken;
-let coverageHost;
+let sonarHost;
 let sdCoverageAuthUrl;
 
 /**
@@ -27,7 +27,7 @@ function createProject(projectKey) {
         json: true,
         method: 'POST',
         // eslint-disable-next-line max-len
-        uri: `${coverageHost}/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private`,
+        uri: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private`,
         auth: {
             username: adminToken
         }
@@ -52,7 +52,7 @@ function createUser(username, password) {
         json: true,
         method: 'POST',
         // eslint-disable-next-line max-len
-        uri: `${coverageHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
+        uri: `${sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
         auth: {
             username: adminToken
         }
@@ -78,7 +78,7 @@ function grantUserPermission(username, projectKey) {
         json: true,
         method: 'POST',
         // eslint-disable-next-line
-        uri: `${coverageHost}/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`,
+        uri: `${sonarHost}/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`,
         auth: {
             username: adminToken
         }
@@ -99,7 +99,7 @@ function generateToken(username) {
     return request({
         json: true,
         method: 'POST',
-        uri: `${coverageHost}/api/user_tokens/generate?login=${username}&name=${tokenName}`,
+        uri: `${sonarHost}/api/user_tokens/generate?login=${username}&name=${tokenName}`,
         auth: {
             username: adminToken
         }
@@ -124,7 +124,7 @@ function getCoveragePercentage({ jobId, startTime, endTime }) {
     const from = encodeURIComponent(parsedStartTime);
     const to = encodeURIComponent(parsedEndTime);
     // eslint-disable-next-line max-len
-    const coverageUrl = `${coverageHost}/api/measures/search_history?component=${componentId}&metrics=coverage&from=${from}&to=${to}&ps=1`;
+    const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=coverage&from=${from}&to=${to}&ps=1`;
 
     return request({
         json: true,
@@ -146,7 +146,7 @@ class CoverageSonar extends CoverageBase {
      * @method constructor
      * @param  {Object} config              Configuration object
      * @param  {String} config.sdApiUrl     URL for Screwdriver API
-     * @param  {String} config.coverageHost SonarQube Server host
+     * @param  {String} config.sonarHost    SonarQube Server host
      * @param  {String} config.adminToken   Sonar Admin token
      */
     constructor(config) {
@@ -154,16 +154,16 @@ class CoverageSonar extends CoverageBase {
 
         this.config = joi.attempt(config, joi.object().keys({
             sdApiUrl: joi.string().uri().required(),
-            coverageHost: joi.string().uri().required(),
+            sonarHost: joi.string().uri().required(),
             adminToken: joi.string().required()
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
         sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
-        coverageHost = this.config.coverageHost;
+        sonarHost = this.config.sonarHost;
         this.uploadCommands = COMMANDS
-            .replace('$SD_COVERAGE_AUTH_URL', sdCoverageAuthUrl)
-            .replace('$SD_COVERAGE_HOST', coverageHost)
+            .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
+            .replace('$SD_SONAR_HOST', sonarHost)
             .split('\n');
         this.uploadCommands[this.uploadCommands.length - 1] += ' || true';
     }
@@ -197,27 +197,31 @@ class CoverageSonar extends CoverageBase {
      * @return  {Promise}                   An object with:
      *                                        - coverage percentage
      *                                        - project url
-     *                                        - Screwdriver API coverage auth url
-     *                                        - coverage host
+     *                                        - Sonar env vars
      */
     _getInfo({ jobId, startTime, endTime }) {
-        const componentId = encodeURIComponent(`job:${jobId}`);
-        const projectUrl = `${this.config.coverageHost}/dashboard?id=${componentId}`;
+        const infoObject = {
+            envVars: {
+                SD_SONAR_AUTH_URL: sdCoverageAuthUrl,
+                SD_SONAR_HOST: sonarHost
+            }
+        };
 
+        // Only get coverage percentage if the steps are finished
         if (jobId && startTime && endTime) {
             return getCoveragePercentage({ jobId, startTime, endTime })
-                .then(coveragePercentage => ({
-                    coverage: coveragePercentage,
-                    projectUrl,
-                    sdCoverageAuthUrl,
-                    coverageHost
-                }));
+                .then((coveragePercentage) => {
+                    const componentId = encodeURIComponent(`job:${jobId}`);
+                    const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
+
+                    infoObject.coverage = coveragePercentage;
+                    infoObject.projectUrl = projectUrl;
+
+                    return Promise.resolve(infoObject);
+                });
         }
 
-        return Promise.resolve({
-            sdCoverageAuthUrl,
-            coverageHost
-        });
+        return Promise.resolve(infoObject);
     }
 
     /**
