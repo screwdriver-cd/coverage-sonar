@@ -98,7 +98,26 @@ describe('index test', () => {
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
                 assert.deepEqual(result, {
                     coverage: '98.8',
-                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    }
+                });
+            });
+        });
+
+        it('returns links when startTime and endTime are not passed in', () => {
+            requestMock.onCall(0).resolves(coverageObject);
+
+            return sonarPlugin.getInfo({
+                jobId: '1'
+            }).then((result) => {
+                assert.deepEqual(result, {
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    }
                 });
             });
         });

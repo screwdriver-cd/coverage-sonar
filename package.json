@@ -35,12 +35,12 @@
     "eslint-config-screwdriver": "^3.0.0",
     "jenkins-mocha": "^4.0.0",
     "mockery": "^2.1.0",
-    "sinon": "^5.0.4"
+    "sinon": "^5.1.1"
   },
   "dependencies": {
     "hoek": "^5.0.3",
-    "joi": "^13.2.0",
-    "request": "^2.85.0",
+    "joi": "^13.4.0",
+    "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
     "screwdriver-coverage-base": "^1.0.5",
     "uuid": "^3.2.1"

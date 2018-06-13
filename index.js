@@ -14,7 +14,7 @@ const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').t
 
 let adminToken;
 let sonarHost;
-let sdApiAuthUrl;
+let sdCoverageAuthUrl;
 
 /**
  * Create a project in sonar
@@ -146,7 +146,7 @@ class CoverageSonar extends CoverageBase {
      * @method constructor
      * @param  {Object} config              Configuration object
      * @param  {String} config.sdApiUrl     URL for Screwdriver API
-     * @param  {String} config.sonarHost    Host for SonarQube Server
+     * @param  {String} config.sonarHost    SonarQube Server host
      * @param  {String} config.adminToken   Sonar Admin token
      */
     constructor(config) {
@@ -158,12 +158,12 @@ class CoverageSonar extends CoverageBase {
             adminToken: joi.string().required()
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
-        sdApiAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
+        sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
         sonarHost = this.config.sonarHost;
         this.uploadCommands = COMMANDS
-            .replace('$SD_API_AUTH_URL', sdApiAuthUrl)
-            .replace('$SONAR_HOST', sonarHost)
+            .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
+            .replace('$SD_SONAR_HOST', sonarHost)
             .split('\n');
         this.uploadCommands[this.uploadCommands.length - 1] += ' || true';
     }
@@ -194,17 +194,34 @@ class CoverageSonar extends CoverageBase {
      * @param   {String}  config.jobId      Screwdriver job ID
      * @param   {String}  config.startTime  Job start time
      * @param   {String}  config.endTime    Job end time
-     * @return  {Promise}                   An object with coverage badge link and project link
+     * @return  {Promise}                   An object with:
+     *                                        - coverage percentage
+     *                                        - project url
+     *                                        - Sonar env vars
      */
     _getInfo({ jobId, startTime, endTime }) {
-        const componentId = encodeURIComponent(`job:${jobId}`);
-        const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
+        const infoObject = {
+            envVars: {
+                SD_SONAR_AUTH_URL: sdCoverageAuthUrl,
+                SD_SONAR_HOST: sonarHost
+            }
+        };
 
-        return getCoveragePercentage({ jobId, startTime, endTime })
-            .then(coveragePercentage => ({
-                coverage: coveragePercentage,
-                projectUrl
-            }));
+        // Only get coverage percentage if the steps are finished
+        if (jobId && startTime && endTime) {
+            return getCoveragePercentage({ jobId, startTime, endTime })
+                .then((coveragePercentage) => {
+                    const componentId = encodeURIComponent(`job:${jobId}`);
+                    const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
+
+                    infoObject.coverage = coveragePercentage;
+                    infoObject.projectUrl = projectUrl;
+
+                    return Promise.resolve(infoObject);
+                });
+        }
+
+        return Promise.resolve(infoObject);
     }
 
     /**
