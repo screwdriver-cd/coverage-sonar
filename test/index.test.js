@@ -11,6 +11,7 @@ sinon.assert.expose(assert, { prefix: '' });
 describe('index test', () => {
     const config = {
         sdApiUrl: 'https://api.screwdriver.cd',
+        sdUiUrl: 'https://cd.screwdriver.cd',
         sonarHost: 'https://sonar.screwdriver.cd',
         adminToken: 'faketoken'
     };
