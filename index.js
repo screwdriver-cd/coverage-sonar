@@ -8,6 +8,7 @@ const hoek = require('hoek');
 const path = require('path');
 const request = require('request-promise-native');
 const uuidv4 = require('uuid/v4');
+const winston = require('winston');
 const CoverageBase = require('screwdriver-coverage-base');
 
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
@@ -112,9 +113,9 @@ function generateToken(username) {
  * Get coverage percentage for a build
  * @method getCoveragePercentage
  * @param  {String} username   username of the user
- * @return {Promise}           Object with a token field
+ * @return {Promise}           Object with coverage percentage and tests success percentage
  */
-function getCoveragePercentage({ jobId, startTime, endTime }) {
+function getMetrics({ jobId, startTime, endTime }) {
     const componentId = encodeURIComponent(`job:${jobId}`);
     // get timezone offset (e.g. -0700) from 'Fri May 11 2018 15:25:37 GMT-0700 (PDT)'
     const timezoneOffset = new Date().toString().match(/GMT(.*) /)[1];
@@ -124,7 +125,7 @@ function getCoveragePercentage({ jobId, startTime, endTime }) {
     const from = encodeURIComponent(parsedStartTime);
     const to = encodeURIComponent(parsedEndTime);
     // eslint-disable-next-line max-len
-    const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=coverage&from=${from}&to=${to}&ps=1`;
+    const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
 
     return request({
         json: true,
@@ -134,9 +135,33 @@ function getCoveragePercentage({ jobId, startTime, endTime }) {
             username: adminToken
         }
     })
-        .then(result => hoek.reach(result, 'measures.0.history.0.value'))
+        .then((result) => {
+            const metrics = {
+                coverage: hoek.reach(result, 'measures.3.history.0.value') || 'N/A',
+                tests: 'N/A'
+            };
+            const total = hoek.reach(result, 'measures.0.history.0.value');
+            const testErrors = hoek.reach(result, 'measures.1.history.0.value');
+            const testFailures = hoek.reach(result, 'measures.2.history.0.value');
+
+            if (total) {
+                const totalInt = parseInt(total, 10);
+                const pass = totalInt - parseInt(testErrors, 10) - parseInt(testFailures, 10);
+
+                metrics.tests = `${pass}/${totalInt}`;
+            }
+
+            return metrics;
+        })
         .catch((err) => {
-            throw new Error(`Failed to get coverage percentage for job ${jobId}: ${err.message}`);
+            // if cannot get coverage, do not throw err
+            // eslint-disable-next-line max-len
+            winston.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);
+
+            return {
+                tests: 'N/A',
+                coverage: 'N/A'
+            };
         });
 }
 
@@ -197,6 +222,7 @@ class CoverageSonar extends CoverageBase {
      * @param   {String}  config.startTime  Job start time
      * @param   {String}  config.endTime    Job end time
      * @return  {Promise}                   An object with:
+     *                                        - tests success percentage
      *                                        - coverage percentage
      *                                        - project url
      *                                        - Sonar env vars
@@ -211,12 +237,13 @@ class CoverageSonar extends CoverageBase {
 
         // Only get coverage percentage if the steps are finished
         if (jobId && startTime && endTime) {
-            return getCoveragePercentage({ jobId, startTime, endTime })
-                .then((coveragePercentage) => {
+            return getMetrics({ jobId, startTime, endTime })
+                .then(({ coverage, tests }) => {
                     const componentId = encodeURIComponent(`job:${jobId}`);
                     const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
 
-                    infoObject.coverage = coveragePercentage;
+                    infoObject.coverage = coverage;
+                    infoObject.tests = tests;
                     infoObject.projectUrl = projectUrl;
 
                     return Promise.resolve(infoObject);
