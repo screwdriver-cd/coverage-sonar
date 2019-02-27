@@ -136,13 +136,20 @@ function getMetrics({ jobId, startTime, endTime }) {
         }
     })
         .then((result) => {
+            const measures = {};
+
+            // measures in result is an array, covert it to an object with metric name as key
+            (hoek.reach(result, 'measures') || []).forEach((measure) => {
+                measures[measure.metric] = measure;
+            });
+
             const metrics = {
-                coverage: hoek.reach(result, 'measures.3.history.0.value') || 'N/A',
+                coverage: hoek.reach(measures, 'coverage.history.0.value') || 'N/A',
                 tests: 'N/A'
             };
-            const total = hoek.reach(result, 'measures.0.history.0.value');
-            const testErrors = hoek.reach(result, 'measures.1.history.0.value');
-            const testFailures = hoek.reach(result, 'measures.2.history.0.value');
+            const total = hoek.reach(measures, 'tests.history.0.value');
+            const testErrors = hoek.reach(measures, 'test_errors.history.0.value');
+            const testFailures = hoek.reach(measures, 'test_failures.history.0.value');
 
             if (total) {
                 const totalInt = parseInt(total, 10);
