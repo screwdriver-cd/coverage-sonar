@@ -1,11 +1,12 @@
 if [ `uname` = 'Darwin' ]; then echo "ERROR - coverage feature not implemented" && exit 0; fi
-if [ ! -f sonar-project.properties ] && [ -z $SD_SONAR_OPTS ]; then echo "ERROR - No sonar project properties defined." && exit 0; fi
+if [ ! -f sonar-project.properties ] && [ -z "$SD_SONAR_OPTS" ]; then echo "ERROR - No sonar project properties defined." && exit 0; fi
 export SD_CURL_CMD_WRAPPER="sd-step exec --pkg-version 7.54.1 core/curl"
 export SD_UNZIP_CMD_WRAPPER="sd-step exec --pkg-version 6.0 core/unzip"
 SONAR_TOKEN=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer $SD_TOKEN\" $SD_SONAR_AUTH_URL"`
 VERSION=`cat sonar-project.properties | awk -F= '/sonar.projectVersion=/{print $2}'`
 PROJECT_VERSION=${VERSION:='not provided'}
-SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=job:$SD_JOB_ID" "-Dsonar.projectName=$SD_PIPELINE_NAME:$SD_JOB_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" "$SD_SONAR_OPTS"'
+SONAR_OPTIONS=`eval echo "$SD_SONAR_OPTS"`
+SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=job:$SD_JOB_ID" "-Dsonar.projectName=$SD_PIPELINE_NAME:$SD_JOB_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" $SONAR_OPTIONS'
 SCANNER_PATH="/opt/sd/sonar-scanner/bin/sonar-scanner"
 if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
 $SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.2.0.1227-linux.zip"
