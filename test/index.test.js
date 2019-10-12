@@ -174,7 +174,8 @@ describe('index test', () => {
         });
 
         it('return N/A for tests if it tests metric does not exist', () => {
-            let obj = JSON.parse(JSON.stringify(coverageObject));
+            const obj = JSON.parse(JSON.stringify(coverageObject));
+
             delete obj.measures[0];
             requestMock.onCall(0).resolves(obj);
 
@@ -195,7 +196,8 @@ describe('index test', () => {
         });
 
         it('computes correct result if tests_errors metric is missing', () => {
-            let obj = JSON.parse(JSON.stringify(coverageObject));
+            const obj = JSON.parse(JSON.stringify(coverageObject));
+
             delete obj.measures[1].history[0].value;
             requestMock.onCall(0).resolves(obj);
 
