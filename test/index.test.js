@@ -195,6 +195,28 @@ describe('index test', () => {
             }));
         });
 
+        it('return N/A for tests if it tests metric history value is not a number', () => {
+            const obj = JSON.parse(JSON.stringify(coverageObject));
+
+            obj.measures[0].history[0].value = 'unknown';
+            requestMock.onCall(0).resolves(obj);
+
+            return sonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
+            }).then(result => assert.deepEqual(result, {
+                coverage: '98.8',
+                tests: 'N/A',
+                projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                envVars: {
+                    SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                }
+            }));
+        });
+
         it('computes correct result if tests_errors metric is missing', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
