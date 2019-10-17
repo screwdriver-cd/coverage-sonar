@@ -147,11 +147,12 @@ function getMetrics({ jobId, startTime, endTime }) {
                 coverage: hoek.reach(measures, 'coverage.history.0.value') || 'N/A',
                 tests: 'N/A'
             };
-            const total = hoek.reach(measures, 'tests.history.0.value');
-            const testErrors = hoek.reach(measures, 'test_errors.history.0.value');
-            const testFailures = hoek.reach(measures, 'test_failures.history.0.value');
+            const zero = { default: 0 };
+            const total = hoek.reach(measures, 'tests.history.0.value', { default: 'N/A' });
+            const testErrors = hoek.reach(measures, 'test_errors.history.0.value', zero);
+            const testFailures = hoek.reach(measures, 'test_failures.history.0.value', zero);
 
-            if (total) {
+            if (!Number.isNaN(Number(total))) {
                 const totalInt = parseInt(total, 10);
                 const pass = totalInt - parseInt(testErrors, 10) - parseInt(testFailures, 10);
 
