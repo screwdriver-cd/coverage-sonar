@@ -104,7 +104,7 @@ describe('index test', () => {
             const commandsPath = path.resolve(__dirname, './data/commands.txt');
             const commands = fs.readFileSync(commandsPath, 'utf8').replace('\n', '');
 
-            return sonarPlugin.getUploadCoverageCmd().then(result =>
+            return sonarPlugin.getUploadCoverageCmd({ build: {} }).then(result =>
                 assert.deepEqual(result, commands)
             );
         });

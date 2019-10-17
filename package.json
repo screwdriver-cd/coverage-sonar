@@ -33,7 +33,7 @@
     "chai": "^3.5.0",
     "eslint": "^4.3.0",
     "eslint-config-screwdriver": "^3.0.0",
-    "jenkins-mocha": "^7.0.0",
+    "jenkins-mocha": "^8.0.0",
     "mockery": "^2.1.0",
     "sinon": "^5.1.1"
   },
