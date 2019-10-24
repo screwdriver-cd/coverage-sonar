@@ -9,11 +9,7 @@ if echo $SCM_URL | grep git@ > /dev/null 2>&1; then export SONAR_SCM_URL=`echo $
 SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=job:$SD_JOB_ID" "-Dsonar.projectName=$SD_PIPELINE_NAME:$SD_JOB_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SONAR_SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" $SONAR_OPTIONS'
 SCANNER_PATH="/opt/sd/sonar-scanner/bin/sonar-scanner"
 if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
-if [ `uname` = 'Darwin' ]; then
-    TARGET_OS='macosx'
-else
-    TARGET_OS='linux'
-fi
+if [ `uname` = 'Darwin' ]; then TARGET_OS='macosx' else TARGET_OS='linux' fi
 $SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-${TARGET_OS}.zip"
 $SD_UNZIP_CMD_WRAPPER "unzip -q ./sonarscanner.zip"
 SCANNER_PATH="sonar-scanner-3.3.0.1492-${TARGET_OS}/bin/sonar-scanner"
