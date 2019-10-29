@@ -1,6 +1,8 @@
 if [ ! -f sonar-project.properties ] && [ -z "$SD_SONAR_OPTS" ]; then echo "ERROR - No sonar project properties defined." && exit 0; fi
-export SD_CURL_CMD_WRAPPER="sd-step exec --pkg-version 7.54.1 core/curl"
-export SD_UNZIP_CMD_WRAPPER="sd-step exec --pkg-version 6.0 core/unzip"
+if curl --version > /dev/null 2>&1; then SD_CURL_CMD_WRAPPER="eval"; else SD_CURL_CMD_WRAPPER="sd-step exec --pkg-version 7.54.1 core/curl"; fi
+if unzip -version > /dev/null 2>&1; then SD_UNZIP_CMD_WRAPPER="eval"; else SD_UNZIP_CMD_WRAPPER="sd-step exec --pkg-version 6.0 core/unzip"; fi
+export SD_CURL_CMD_WRAPPER
+export SD_UNZIP_CMD_WRAPPER
 SONAR_TOKEN=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer $SD_TOKEN\" $SD_SONAR_AUTH_URL"`
 VERSION=`cat sonar-project.properties | awk -F= '/sonar.projectVersion=/{print $2}'`
 PROJECT_VERSION=${VERSION:='not provided'}
