@@ -44,7 +44,7 @@
     "request-promise-native": "^1.0.5",
     "screwdriver-coverage-base": "^1.0.5",
     "uuid": "^3.2.1",
-    "winston": "^3.2.1"
+    "screwdriver-logger": "^1.0.0"
   },
   "release": {
     "debug": false,

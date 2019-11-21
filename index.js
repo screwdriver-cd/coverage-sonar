@@ -8,7 +8,7 @@ const hoek = require('hoek');
 const path = require('path');
 const request = require('request-promise-native');
 const uuidv4 = require('uuid/v4');
-const winston = require('winston');
+const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
 
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
@@ -164,7 +164,7 @@ function getMetrics({ jobId, startTime, endTime }) {
         .catch((err) => {
             // if cannot get coverage, do not throw err
             // eslint-disable-next-line max-len
-            winston.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);
+            logger.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);
 
             return {
                 tests: 'N/A',
