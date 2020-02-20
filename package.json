@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
-    "test": "jenkins-mocha --recursive",
+    "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true --color true",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "repository": {
@@ -33,8 +33,9 @@
     "chai": "^3.5.0",
     "eslint": "^4.3.0",
     "eslint-config-screwdriver": "^3.0.0",
-    "jenkins-mocha": "^8.0.0",
+    "mocha": "^7.0.1",
     "mockery": "^2.1.0",
+    "nyc": "^15.0.0",
     "sinon": "^5.1.1"
   },
   "dependencies": {
