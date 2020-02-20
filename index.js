@@ -118,7 +118,7 @@ function generateToken(username) {
 function getMetrics({ jobId, startTime, endTime }) {
     const componentId = encodeURIComponent(`job:${jobId}`);
     // get timezone offset (e.g. -0700) from 'Fri May 11 2018 15:25:37 GMT-0700 (PDT)'
-    const timezoneOffset = new Date().toString().match(/GMT(.*) /)[1];
+    const timezoneOffset = new Date().toString().match(/GMT(.*?) /)[1];
     // Convert the time format from 2018-05-10T19:05:53.123Z to 2018-05-10T19:05:53-0700 as required by sonar
     const parsedStartTime = startTime.replace(/\.(.*)/, timezoneOffset);
     const parsedEndTime = endTime.replace(/\.(.*)/, timezoneOffset);

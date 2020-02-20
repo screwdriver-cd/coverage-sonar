@@ -113,7 +113,7 @@ describe('index test', () => {
     describe('getInfo', () => {
         it('returns links', () => {
             requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*) /)[1]);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
 
             return sonarPlugin.getInfo({
                 buildId: '123',
