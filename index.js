@@ -162,9 +162,12 @@ function getMetrics({ jobId, startTime, endTime }) {
             return metrics;
         })
         .catch((err) => {
-            // if cannot get coverage, do not throw err
-            // eslint-disable-next-line max-len
-            logger.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);
+            // if there is no coverage measurement target, 404 is returned and this is not an error
+            if (err.statusCode !== 404) {
+                // if cannot get coverage, do not throw err
+                // eslint-disable-next-line max-len
+                logger.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);
+            }
 
             return {
                 tests: 'N/A',

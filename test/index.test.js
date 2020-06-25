@@ -63,6 +63,7 @@ describe('index test', () => {
     let SonarPlugin;
     let sonarPlugin;
     let requestMock;
+    let loggerMock;
 
     before(() => {
         mockery.enable({
@@ -74,6 +75,13 @@ describe('index test', () => {
     beforeEach(() => {
         requestMock = sinon.stub().resolves(null);
         mockery.registerMock('request-promise-native', requestMock);
+
+        loggerMock = {
+            info: sinon.stub(),
+            warn: sinon.stub(),
+            error: sinon.stub()
+        };
+        mockery.registerMock('screwdriver-logger', loggerMock);
 
         // eslint-disable-next-line global-require
         SonarPlugin = require('..');
@@ -121,7 +129,7 @@ describe('index test', () => {
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z'
             }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
+                assert.call(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
                 assert.deepEqual(result, {
@@ -162,15 +170,43 @@ describe('index test', () => {
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z'
-            }).then(result => assert.deepEqual(result, {
-                coverage: 'N/A',
-                tests: 'N/A',
-                projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
-                envVars: {
-                    SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
-                }
-            }));
+            }).then((result) => {
+                assert.callCount(loggerMock.error, 1);
+                assert.deepEqual(result, {
+                    coverage: 'N/A',
+                    tests: 'N/A',
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    }
+                });
+            });
+        });
+
+        it('return N/A if coverage and tests does not exists', () => {
+            requestMock.onCall(0).rejects({
+                statusCode: 404,
+                message: '404 - not found'
+            });
+
+            return sonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
+            }).then((result) => {
+                assert.notCalled(loggerMock.error);
+                assert.deepEqual(result, {
+                    coverage: 'N/A',
+                    tests: 'N/A',
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    }
+                });
+            });
         });
 
         it('return N/A for tests if it tests metric does not exist', () => {
