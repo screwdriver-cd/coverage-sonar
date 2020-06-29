@@ -162,8 +162,8 @@ function getMetrics({ jobId, startTime, endTime }) {
             return metrics;
         })
         .catch((err) => {
-            // if there is no coverage measurement target, 404 is returned and this is not an error
-            if (err.statusCode !== 404) {
+            // if there is no coverage measurement target, 404 and 'Component key not found' are returned and this is not an error
+            if (err.statusCode !== 404 || !/Component key '.*' not found/.test(err.message)) {
                 // if cannot get coverage, do not throw err
                 // eslint-disable-next-line max-len
                 logger.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);

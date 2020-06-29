@@ -184,10 +184,10 @@ describe('index test', () => {
             });
         });
 
-        it('return N/A if coverage and tests does not exists', () => {
+        it('return N/A if coverage and tests does not exists on sonar', () => {
             requestMock.onCall(0).rejects({
                 statusCode: 404,
-                message: '404 - not found'
+                message: '404 - {"errors":[{"msg":"Component key \'job:1\' not found"}]}'
             });
 
             return sonarPlugin.getInfo({
@@ -197,6 +197,31 @@ describe('index test', () => {
                 endTime: '2017-10-19T15:00:00.234Z'
             }).then((result) => {
                 assert.notCalled(loggerMock.error);
+                assert.deepEqual(result, {
+                    coverage: 'N/A',
+                    tests: 'N/A',
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    }
+                });
+            });
+        });
+
+        it('return N/A if the error message is an unexpected 404 error', () => {
+            requestMock.onCall(0).rejects({
+                statusCode: 404,
+                message: '404 - Not Found'
+            });
+
+            return sonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
+            }).then((result) => {
+                assert.callCount(loggerMock.error, 1);
                 assert.deepEqual(result, {
                     coverage: 'N/A',
                     tests: 'N/A',
