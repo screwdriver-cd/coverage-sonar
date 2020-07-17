@@ -16,6 +16,7 @@ const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').t
 let adminToken;
 let sonarHost;
 let sdCoverageAuthUrl;
+let sonarEnterprise;
 
 /**
  * Create a project in sonar
@@ -110,13 +111,17 @@ function generateToken(username) {
 }
 
 /**
- * Get coverage percentage for a build
- * @method getCoveragePercentage
- * @param  {String} username   username of the user
- * @return {Promise}           Object with coverage percentage and tests success percentage
+ * Get metrics for a project
+ * @method getMetrics
+ * @param  {Object} config
+ * @param  {String} config.sonarProjectKey Sonar project key (job:jobId or pipeline:pipelineId)
+ * @param  {String} config.startTime       Job start time
+ * @param  {String} config.endTime         Job end time
+ * @param  {String} [config.prNum]         Pull request number
+ * @return {Promise}                Object with coverage percentage and tests success percentage
  */
-function getMetrics({ jobId, startTime, endTime }) {
-    const componentId = encodeURIComponent(`job:${jobId}`);
+function getMetrics({ sonarProjectKey, startTime, endTime, prNum }) {
+    const componentId = encodeURIComponent(sonarProjectKey);
     // get timezone offset (e.g. -0700) from 'Fri May 11 2018 15:25:37 GMT-0700 (PDT)'
     const timezoneOffset = new Date().toString().match(/GMT(.*?) /)[1];
     // Convert the time format from 2018-05-10T19:05:53.123Z to 2018-05-10T19:05:53-0700 as required by sonar
@@ -126,6 +131,10 @@ function getMetrics({ jobId, startTime, endTime }) {
     const to = encodeURIComponent(parsedEndTime);
     // eslint-disable-next-line max-len
     const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
+
+    if (sonarProjectKey.startsWith('pipeline') && prNum) {
+        coverageUrl.concat(`&pullRequest=${prNum}`);
+    }
 
     return request({
         json: true,
@@ -166,7 +175,7 @@ function getMetrics({ jobId, startTime, endTime }) {
             if (err.statusCode !== 404 || !/Component key '.*' not found/.test(err.message)) {
                 // if cannot get coverage, do not throw err
                 // eslint-disable-next-line max-len
-                logger.error(`Failed to get coverage and tests percentage for job ${jobId}: ${err.message}`);
+                logger.error(`Failed to get coverage and tests percentage for Sonar project ${sonarProjectKey}: ${err.message}`);
             }
 
             return {
@@ -176,14 +185,30 @@ function getMetrics({ jobId, startTime, endTime }) {
         });
 }
 
+/**
+ * Determine Sonar project key based on SonarQube edition
+ * @method getProjectKey
+ * @param  {Object}     config
+ * @param  {Boolean}    config.enterpriseEnabled    If enterprise is enabled
+ * @param  {String}     config.jobId                Job ID
+ * @param  {String}     config.pipelineId           Pipeline ID
+ * @return {String}                                 Sonar project key
+ */
+function getProjectKey({ enterpriseEnabled, jobId, pipelineId }) {
+    return enterpriseEnabled ? `pipeline:${pipelineId}` : `job:${jobId}`;
+}
+
 class CoverageSonar extends CoverageBase {
     /**
      * Constructor
      * @method constructor
-     * @param  {Object} config              Configuration object
-     * @param  {String} config.sdApiUrl     URL for Screwdriver API
-     * @param  {String} config.sonarHost    SonarQube Server host
-     * @param  {String} config.adminToken   Sonar Admin token
+     * @param  {Object}  config                     Configuration object
+     * @param  {String}  config.sdApiUrl            URL for Screwdriver API
+     * @param  {String}  config.sdUiUrl             URL for Screwdriver UI
+     * @param  {String}  config.sonarHost           SonarQube Server host
+     * @param  {String}  config.adminToken          Sonar Admin token
+     * @param  {Boolean} [config.sonarEnterprise]   If Sonar enterprise is used or not
+     *
      */
     constructor(config) {
         super();
@@ -192,16 +217,19 @@ class CoverageSonar extends CoverageBase {
             sdApiUrl: joi.string().uri().required(),
             sdUiUrl: joi.string().uri().required(),
             sonarHost: joi.string().uri().required(),
-            adminToken: joi.string().required()
+            adminToken: joi.string().required(),
+            sonarEnterprise: joi.boolean().default(false)
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
         sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
         sonarHost = this.config.sonarHost;
+        sonarEnterprise = this.config.sonarEnterprise;
         this.uploadCommands = COMMANDS
             .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
             .replace('$SD_SONAR_HOST', sonarHost)
             .replace('$SD_UI_URL', this.config.sdUiUrl)
+            .replace('$SD_SONAR_ENTERPRISE', sonarEnterprise)
             .split('\n');
         this.uploadCommands[this.uploadCommands.length - 1] += ' || true';
     }
@@ -213,8 +241,8 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                   An access token that build can use to talk to coverage server
      */
     _getAccessToken(buildCredentials) {
-        const { jobId } = buildCredentials;
-        const projectKey = `job:${jobId}`;
+        const { jobId, pipelineId } = buildCredentials;
+        const projectKey = getProjectKey({ enterpriseEnabled: sonarEnterprise, jobId, pipelineId });
         const username = `user-job-${jobId}`;
         const password = uuidv4();
 
@@ -229,28 +257,37 @@ class CoverageSonar extends CoverageBase {
      * Return links to the Sonar project and coverage metadata
      * @method getInfo
      * @param   {Object}  config
-     * @param   {String}  config.jobId      Screwdriver job ID
-     * @param   {String}  config.startTime  Job start time
-     * @param   {String}  config.endTime    Job end time
-     * @return  {Promise}                   An object with:
-     *                                        - tests success percentage
-     *                                        - coverage percentage
-     *                                        - project url
-     *                                        - Sonar env vars
+     * @param   {String}  config.jobId          Screwdriver job ID
+     * @param   {String}  [config.pipelineId]   Screwdriver pipeline ID (if enterprise is enabled)
+     * @param   {String}  [config.prNum]        Pull request number
+     * @param   {String}  config.startTime      Job start time
+     * @param   {String}  config.endTime        Job end time
+     * @return  {Promise}                       An object with:
+     *                                          - tests success percentage
+     *                                          - coverage percentage
+     *                                          - project url
+     *                                          - Sonar env vars
      */
-    _getInfo({ jobId, startTime, endTime }) {
+    _getInfo({ jobId, startTime, endTime, pipelineId, prNum }) {
+        const sonarProjectKey = getProjectKey({
+            enterpriseEnabled: sonarEnterprise,
+            jobId,
+            pipelineId
+        });
         const infoObject = {
             envVars: {
                 SD_SONAR_AUTH_URL: sdCoverageAuthUrl,
-                SD_SONAR_HOST: sonarHost
+                SD_SONAR_HOST: sonarHost,
+                SD_SONAR_ENTERPRISE: sonarEnterprise,
+                SD_SONAR_PROJECT_KEY: sonarProjectKey
             }
         };
 
         // Only get coverage percentage if the steps are finished
-        if (jobId && startTime && endTime) {
-            return getMetrics({ jobId, startTime, endTime })
+        if (sonarProjectKey && startTime && endTime) {
+            return getMetrics({ sonarProjectKey, startTime, endTime, prNum })
                 .then(({ coverage, tests }) => {
-                    const componentId = encodeURIComponent(`job:${jobId}`);
+                    const componentId = encodeURIComponent(sonarProjectKey);
                     const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
 
                     infoObject.coverage = coverage;

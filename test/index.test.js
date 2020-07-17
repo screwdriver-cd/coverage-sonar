@@ -99,11 +99,24 @@ describe('index test', () => {
     });
 
     describe('constructor', () => {
+        it('constructs with defaults', () => {
+            assert.ok(sonarPlugin);
+            assert.property(sonarPlugin, 'getAccessToken');
+            assert.property(sonarPlugin, 'getUploadCoverageCmd');
+            assert.deepEqual(sonarPlugin.config, {
+                { sonarEnterprise: false },
+                ...config
+            });
+        });
+
         it('constructs', () => {
             assert.ok(sonarPlugin);
             assert.property(sonarPlugin, 'getAccessToken');
             assert.property(sonarPlugin, 'getUploadCoverageCmd');
-            assert.deepEqual(sonarPlugin.config, config);
+            assert.deepEqual(sonarPlugin.config, {
+                { sonarEnterprise: false },
+                ...config
+            });
         });
     });
 
