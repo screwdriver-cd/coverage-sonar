@@ -13,7 +13,8 @@ describe('index test', () => {
         sdApiUrl: 'https://api.screwdriver.cd',
         sdUiUrl: 'https://cd.screwdriver.cd',
         sonarHost: 'https://sonar.screwdriver.cd',
-        adminToken: 'faketoken'
+        adminToken: 'faketoken',
+        sonarEnterprise: false
     };
     const coverageObject = {
         paging: {
@@ -99,24 +100,11 @@ describe('index test', () => {
     });
 
     describe('constructor', () => {
-        it('constructs with defaults', () => {
-            assert.ok(sonarPlugin);
-            assert.property(sonarPlugin, 'getAccessToken');
-            assert.property(sonarPlugin, 'getUploadCoverageCmd');
-            assert.deepEqual(sonarPlugin.config, {
-                { sonarEnterprise: false },
-                ...config
-            });
-        });
-
         it('constructs', () => {
             assert.ok(sonarPlugin);
             assert.property(sonarPlugin, 'getAccessToken');
             assert.property(sonarPlugin, 'getUploadCoverageCmd');
-            assert.deepEqual(sonarPlugin.config, {
-                { sonarEnterprise: false },
-                ...config
-            });
+            assert.deepEqual(sonarPlugin.config, config);
         });
     });
 
@@ -151,7 +139,9 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'job:1'
                     }
                 });
             });
@@ -166,7 +156,9 @@ describe('index test', () => {
                 assert.deepEqual(result, {
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'job:1'
                     }
                 });
             });
@@ -191,7 +183,9 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'job:1'
                     }
                 });
             });
@@ -216,7 +210,9 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'job:1'
                     }
                 });
             });
@@ -241,7 +237,9 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'job:1'
                     }
                 });
             });
@@ -264,7 +262,9 @@ describe('index test', () => {
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
                     SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'job:1'
                 }
             }));
         });
@@ -286,7 +286,9 @@ describe('index test', () => {
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
                     SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'job:1'
                 }
             }));
         });
@@ -308,7 +310,9 @@ describe('index test', () => {
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
                     SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
-                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd'
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'job:1'
                 }
             }));
         });
