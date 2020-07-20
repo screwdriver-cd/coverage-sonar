@@ -130,10 +130,10 @@ function getMetrics({ sonarProjectKey, startTime, endTime, prNum }) {
     const from = encodeURIComponent(parsedStartTime);
     const to = encodeURIComponent(parsedEndTime);
     // eslint-disable-next-line max-len
-    const coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
+    let coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
 
     if (sonarProjectKey.startsWith('pipeline') && prNum) {
-        coverageUrl.concat(`&pullRequest=${prNum}`);
+        coverageUrl = coverageUrl.concat(`&pullRequest=${prNum}`);
     }
 
     return request({

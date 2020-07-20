@@ -9,60 +9,12 @@ const path = require('path');
 sinon.assert.expose(assert, { prefix: '' });
 
 describe('index test', () => {
-    const config = {
-        sdApiUrl: 'https://api.screwdriver.cd',
-        sdUiUrl: 'https://cd.screwdriver.cd',
-        sonarHost: 'https://sonar.screwdriver.cd',
-        adminToken: 'faketoken',
-        sonarEnterprise: false
-    };
-    const coverageObject = {
-        paging: {
-            pageIndex: 1,
-            pageSize: 1,
-            total: 4
-        },
-        measures: [
-            {
-                metric: 'tests',
-                history: [
-                    {
-                        date: '2018-05-08T00:09:53+0000',
-                        value: '10.0'
-                    }
-                ]
-            },
-            {
-                metric: 'test_errors',
-                history: [
-                    {
-                        date: '2018-05-08T00:09:53+0000',
-                        value: '2.0'
-                    }
-                ]
-            },
-            {
-                metric: 'test_failures',
-                history: [
-                    {
-                        date: '2018-05-08T00:09:53+0000',
-                        value: '1.0'
-                    }
-                ]
-            },
-            {
-                metric: 'coverage',
-                history: [
-                    {
-                        date: '2018-05-08T00:09:53+0000',
-                        value: '98.8'
-                    }
-                ]
-            }
-        ]
-    };
+    let config;
+    let enterpriseConfig;
+    let coverageObject;
     let SonarPlugin;
     let sonarPlugin;
+    let enterpriseSonarPlugin;
     let requestMock;
     let loggerMock;
 
@@ -74,6 +26,64 @@ describe('index test', () => {
     });
 
     beforeEach(() => {
+        config = {
+            sdApiUrl: 'https://api.screwdriver.cd',
+            sdUiUrl: 'https://cd.screwdriver.cd',
+            sonarHost: 'https://sonar.screwdriver.cd',
+            adminToken: 'faketoken'
+        };
+        enterpriseConfig = {
+            sdApiUrl: 'https://api.screwdriver.cd',
+            sdUiUrl: 'https://cd.screwdriver.cd',
+            sonarHost: 'https://sonar.screwdriver.cd',
+            adminToken: 'faketoken',
+            sonarEnterprise: true
+        };
+        coverageObject = {
+            paging: {
+                pageIndex: 1,
+                pageSize: 1,
+                total: 4
+            },
+            measures: [
+                {
+                    metric: 'tests',
+                    history: [
+                        {
+                            date: '2018-05-08T00:09:53+0000',
+                            value: '10.0'
+                        }
+                    ]
+                },
+                {
+                    metric: 'test_errors',
+                    history: [
+                        {
+                            date: '2018-05-08T00:09:53+0000',
+                            value: '2.0'
+                        }
+                    ]
+                },
+                {
+                    metric: 'test_failures',
+                    history: [
+                        {
+                            date: '2018-05-08T00:09:53+0000',
+                            value: '1.0'
+                        }
+                    ]
+                },
+                {
+                    metric: 'coverage',
+                    history: [
+                        {
+                            date: '2018-05-08T00:09:53+0000',
+                            value: '98.8'
+                        }
+                    ]
+                }
+            ]
+        };
         requestMock = sinon.stub().resolves(null);
         mockery.registerMock('request-promise-native', requestMock);
 
@@ -100,11 +110,21 @@ describe('index test', () => {
     });
 
     describe('constructor', () => {
-        it('constructs', () => {
+        it('constructs with defaults', () => {
+            config.sonarEnterprise = false;
+
             assert.ok(sonarPlugin);
             assert.property(sonarPlugin, 'getAccessToken');
             assert.property(sonarPlugin, 'getUploadCoverageCmd');
             assert.deepEqual(sonarPlugin.config, config);
+        });
+
+        it('constructs enterprise Sonar', () => {
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            assert.ok(enterpriseSonarPlugin);
+            assert.property(enterpriseSonarPlugin, 'getAccessToken');
+            assert.property(enterpriseSonarPlugin, 'getUploadCoverageCmd');
+            assert.deepEqual(enterpriseSonarPlugin.config, enterpriseConfig);
         });
     });
 
@@ -142,6 +162,66 @@ describe('index test', () => {
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1'
+                    }
+                });
+            });
+        });
+
+        it('returns links for enterprise', () => {
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+
+            return enterpriseSonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z',
+                pipelineId: 123,
+                prNum: null
+            }).then((result) => {
+                assert.call(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: true,
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123'
+                    }
+                });
+            });
+        });
+
+        it('returns links for enterprise PR', () => {
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+
+            return enterpriseSonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z',
+                pipelineId: 123,
+                prNum: 56
+            }).then((result) => {
+                assert.call(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: true,
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123'
                     }
                 });
             });
@@ -319,13 +399,33 @@ describe('index test', () => {
     });
 
     describe('getAccessToken', () => {
-        const buildCredentials = { jobId: 1 };
+        const buildCredentials = { jobId: 1, pipelineId: 123 };
 
         it('gets an access token successfully', () => {
+            const projectKey = 'job:1';
+
             requestMock.onCall(3).resolves({ token: 'accesstoken' });
 
             return sonarPlugin.getAccessToken(buildCredentials).then((result) => {
                 assert.callCount(requestMock, 4);
+                assert.call(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private` }));
+                assert.strictEqual(result, 'accesstoken');
+            });
+        });
+
+        it('gets an access token successfully for enterprise', () => {
+            const projectKey = 'pipeline:123';
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(3).resolves({ token: 'accesstoken' });
+
+            return enterpriseSonarPlugin.getAccessToken(buildCredentials).then((result) => {
+                assert.callCount(requestMock, 4);
+                assert.call(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private` }));
                 assert.strictEqual(result, 'accesstoken');
             });
         });
