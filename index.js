@@ -92,7 +92,7 @@ function grantUserPermission(username, projectKey) {
 /**
  * Generate an access token for the given user
  * @method generateToken
- * @param  {String} username   username of the user
+ * @param  {String} username   Username of the user
  * @return {Promise}           Object with a token field
  */
 function generateToken(username) {
@@ -114,14 +114,14 @@ function generateToken(username) {
  * Get metrics for a project
  * @method getMetrics
  * @param  {Object} config
- * @param  {String} config.sonarProjectKey Sonar project key (job:jobId or pipeline:pipelineId)
- * @param  {String} config.startTime       Job start time
- * @param  {String} config.endTime         Job end time
- * @param  {String} [config.prNum]         Pull request number
- * @return {Promise}                Object with coverage percentage and tests success percentage
+ * @param  {String} config.projectKey   Sonar project key (job:jobId or pipeline:pipelineId)
+ * @param  {String} config.startTime    Job start time
+ * @param  {String} config.endTime      Job end time
+ * @param  {String} [config.prNum]      Pull request number
+ * @return {Promise}                    Object with coverage percentage and tests success percentage
  */
-function getMetrics({ sonarProjectKey, startTime, endTime, prNum }) {
-    const componentId = encodeURIComponent(sonarProjectKey);
+function getMetrics({ projectKey, startTime, endTime, prNum }) {
+    const componentId = encodeURIComponent(projectKey);
     // get timezone offset (e.g. -0700) from 'Fri May 11 2018 15:25:37 GMT-0700 (PDT)'
     const timezoneOffset = new Date().toString().match(/GMT(.*?) /)[1];
     // Convert the time format from 2018-05-10T19:05:53.123Z to 2018-05-10T19:05:53-0700 as required by sonar
@@ -132,7 +132,7 @@ function getMetrics({ sonarProjectKey, startTime, endTime, prNum }) {
     // eslint-disable-next-line max-len
     let coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
 
-    if (sonarProjectKey.startsWith('pipeline') && prNum) {
+    if (projectKey.startsWith('pipeline') && prNum) {
         coverageUrl = coverageUrl.concat(`&pullRequest=${prNum}`);
     }
 
@@ -175,7 +175,7 @@ function getMetrics({ sonarProjectKey, startTime, endTime, prNum }) {
             if (err.statusCode !== 404 || !/Component key '.*' not found/.test(err.message)) {
                 // if cannot get coverage, do not throw err
                 // eslint-disable-next-line max-len
-                logger.error(`Failed to get coverage and tests percentage for Sonar project ${sonarProjectKey}: ${err.message}`);
+                logger.error(`Failed to get coverage and tests percentage for Sonar project ${projectKey}: ${err.message}`);
             }
 
             return {
@@ -186,16 +186,26 @@ function getMetrics({ sonarProjectKey, startTime, endTime, prNum }) {
 }
 
 /**
- * Determine Sonar project key based on SonarQube edition
- * @method getProjectKey
+ * Determine Sonar project key and username based on SonarQube edition
+ * @method getProjectData
  * @param  {Object}     config
  * @param  {Boolean}    config.enterpriseEnabled    If enterprise is enabled
  * @param  {String}     config.jobId                Job ID
  * @param  {String}     config.pipelineId           Pipeline ID
- * @return {String}                                 Sonar project key
+ * @return {Object}                                 Sonar project key and username
  */
-function getProjectKey({ enterpriseEnabled, jobId, pipelineId }) {
-    return enterpriseEnabled ? `pipeline:${pipelineId}` : `job:${jobId}`;
+function getProjectData({ enterpriseEnabled, jobId, pipelineId }) {
+    if (enterpriseEnabled) {
+        return {
+            projectKey: `pipeline:${pipelineId}`,
+            username: `user-pipeline-${pipelineId}`
+        };
+    }
+
+    return {
+        projectKey: `job:${jobId}`,
+        username: `user-job-${jobId}`
+    };
 }
 
 class CoverageSonar extends CoverageBase {
@@ -242,8 +252,11 @@ class CoverageSonar extends CoverageBase {
      */
     _getAccessToken(buildCredentials) {
         const { jobId, pipelineId } = buildCredentials;
-        const projectKey = getProjectKey({ enterpriseEnabled: sonarEnterprise, jobId, pipelineId });
-        const username = `user-job-${jobId}`;
+        const { projectKey, username } = getProjectData({
+            enterpriseEnabled: sonarEnterprise,
+            jobId,
+            pipelineId
+        });
         const password = uuidv4();
 
         return createProject(projectKey)
@@ -269,7 +282,7 @@ class CoverageSonar extends CoverageBase {
      *                                          - Sonar env vars
      */
     _getInfo({ jobId, startTime, endTime, pipelineId, prNum }) {
-        const sonarProjectKey = getProjectKey({
+        const { projectKey } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
             jobId,
             pipelineId
@@ -279,15 +292,15 @@ class CoverageSonar extends CoverageBase {
                 SD_SONAR_AUTH_URL: sdCoverageAuthUrl,
                 SD_SONAR_HOST: sonarHost,
                 SD_SONAR_ENTERPRISE: sonarEnterprise,
-                SD_SONAR_PROJECT_KEY: sonarProjectKey
+                SD_SONAR_PROJECT_KEY: projectKey
             }
         };
 
         // Only get coverage percentage if the steps are finished
-        if (sonarProjectKey && startTime && endTime) {
-            return getMetrics({ sonarProjectKey, startTime, endTime, prNum })
+        if (projectKey && startTime && endTime) {
+            return getMetrics({ projectKey, startTime, endTime, prNum })
                 .then(({ coverage, tests }) => {
-                    const componentId = encodeURIComponent(sonarProjectKey);
+                    const componentId = encodeURIComponent(projectKey);
                     const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
 
                     infoObject.coverage = coverage;
