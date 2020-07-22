@@ -1,8 +1,6 @@
 if [ ! -f sonar-project.properties ] && [ -z "$SD_SONAR_OPTS" ]; then echo "ERROR - No sonar project properties defined." && exit 0; fi
 if curl --version > /dev/null 2>&1; then SD_CURL_CMD_WRAPPER="eval"; else SD_CURL_CMD_WRAPPER="sd-step exec --pkg-version 7.54.1 core/curl"; fi
-if unzip -version > /dev/null 2>&1; then SD_UNZIP_CMD_WRAPPER="eval"; else SD_UNZIP_CMD_WRAPPER="sd-step exec --pkg-version 6.0 core/unzip"; fi
 export SD_CURL_CMD_WRAPPER
-export SD_UNZIP_CMD_WRAPPER
 SONAR_TOKEN=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer $SD_TOKEN\" $SD_SONAR_AUTH_URL"`
 VERSION=`cat sonar-project.properties | awk -F= '/sonar.projectVersion=/{print $2}'`
 PROJECT_VERSION=${VERSION:='not provided'}
@@ -14,7 +12,12 @@ SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "
 SCANNER_PATH="/opt/sd/sonar-scanner/bin/sonar-scanner"
 if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
 if [ `uname` = 'Darwin' ]; then TARGET_OS='macosx'; else TARGET_OS='linux'; fi
-$SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-${TARGET_OS}.zip"
+SCANNER_PATH="/opt/sd/sonarscanner-cli-${TARGET_OS}/bin/sonar-scanner"
+if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
+if unzip -version > /dev/null 2>&1; then SD_UNZIP_CMD_WRAPPER="eval"; else SD_UNZIP_CMD_WRAPPER="sd-step exec --pkg-version 6.0 core/unzip"; fi
+export SD_UNZIP_CMD_WRAPPER
+SD_SONAR_SCANNER_CLI_VERSION=4.4.0.2170
+$SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SD_SONAR_SCANNER_CLI_VERSION}-${TARGET_OS}.zip"
 $SD_UNZIP_CMD_WRAPPER "unzip -q ./sonarscanner.zip"
-SCANNER_PATH="sonar-scanner-3.3.0.1492-${TARGET_OS}/bin/sonar-scanner"
+SCANNER_PATH="sonar-scanner-${SD_SONAR_SCANNER_CLI_VERSION}-${TARGET_OS}/bin/sonar-scanner"
 eval $SCANNER_PATH $SCANNER_OPTION
