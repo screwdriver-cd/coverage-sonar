@@ -16,5 +16,5 @@ if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SC
 if [ `uname` = 'Darwin' ]; then TARGET_OS='macosx'; else TARGET_OS='linux'; fi
 $SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.4.0.2170-${TARGET_OS}.zip"
 $SD_UNZIP_CMD_WRAPPER "unzip -q ./sonarscanner.zip"
-SCANNER_PATH="sonar-scanner-3.3.0.1492-${TARGET_OS}/bin/sonar-scanner"
+SCANNER_PATH="sonar-scanner-4.4.0.2170-${TARGET_OS}/bin/sonar-scanner"
 eval $SCANNER_PATH $SCANNER_OPTION
