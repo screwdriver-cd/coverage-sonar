@@ -5,8 +5,6 @@ SONAR_TOKEN=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer $SD_TOKEN\" $
 VERSION=`cat sonar-project.properties | awk -F= '/sonar.projectVersion=/{print $2}'`
 PROJECT_VERSION=${VERSION:='not provided'}
 SONAR_OPTIONS=`eval echo "$SD_SONAR_OPTS"`
-if [ "$SD_SONAR_ENTERPRISE" = false ]; then SD_SONAR_PROJECT_NAME="$SD_PIPELINE_NAME:$SD_JOB_NAME"; else SD_SONAR_PROJECT_NAME="$SD_PIPELINE_NAME"; fi
-export SD_SONAR_PROJECT_NAME
 if echo $SCM_URL | grep git@ > /dev/null 2>&1; then export SONAR_SCM_URL=`echo $SCM_URL | sed -e 's/:/\//g' | sed -e 's/git@/https:\/\//g'`; else export SONAR_SCM_URL=${SCM_URL}; fi
 SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=$SD_SONAR_PROJECT_KEY" "-Dsonar.projectName=$SD_SONAR_PROJECT_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SONAR_SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" $SONAR_OPTIONS'
 SCANNER_PATH="/opt/sd/sonar-scanner/bin/sonar-scanner"
