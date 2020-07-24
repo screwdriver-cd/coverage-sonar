@@ -12,7 +12,7 @@ const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
 
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
-const SONAR_SCOPE_ANNOTATION = 'screwdriver.cd/sonarScope';
+const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 let adminToken;
 let sonarHost;
@@ -205,7 +205,7 @@ function getProjectData({ annotations, enterpriseEnabled, jobId, jobName, pipeli
     // Figure out default scope: pipeline scope for enterprise edition, job scope for everything else
     const defaultScope = enterpriseEnabled ? 'pipeline' : 'job';
     // Use user-configured scope or default scope
-    const scope = annotations ? annotations[SONAR_SCOPE_ANNOTATION] : defaultScope;
+    const scope = annotations ? annotations[COVERAGE_SCOPE_ANNOTATION] : defaultScope;
 
     if (scope === 'pipeline') {
         return {

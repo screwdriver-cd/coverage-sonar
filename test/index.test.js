@@ -155,7 +155,7 @@ describe('index test', () => {
                     id: 456,
                     name: 'main',
                     permutations: [{
-                        annotations: { 'screwdriver.cd/sonarScope': 'pipeline' }
+                        annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
                     }]
                 }
             }).then(result =>
@@ -207,7 +207,7 @@ describe('index test', () => {
                 jobName: 'main',
                 pipelineId: 123,
                 pipelineName: 'd2lam/mytest',
-                annotations: { 'screwdriver.cd/sonarScope': 'pipeline' }
+                annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
@@ -307,7 +307,7 @@ describe('index test', () => {
                 prNum: 56,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest',
-                annotations: { 'screwdriver.cd/sonarScope': 'job' }
+                annotations: { 'screwdriver.cd/coverageScope': 'job' }
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
