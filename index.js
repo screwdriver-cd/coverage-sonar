@@ -30,7 +30,7 @@ function createProject(projectKey) {
         json: true,
         method: 'POST',
         // eslint-disable-next-line max-len
-        uri: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private`,
+        uri: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}`,
         auth: {
             username: adminToken
         }
@@ -205,7 +205,7 @@ function getProjectData({ annotations, enterpriseEnabled, jobId, jobName, pipeli
     // Figure out default scope: pipeline scope for enterprise edition, job scope for everything else
     const defaultScope = enterpriseEnabled ? 'pipeline' : 'job';
     // Use user-configured scope or default scope
-    const scope = annotations ? annotations[COVERAGE_SCOPE_ANNOTATION] : defaultScope;
+    const scope = (annotations && annotations[COVERAGE_SCOPE_ANNOTATION]) || defaultScope;
 
     if (scope === 'pipeline') {
         return {
@@ -281,22 +281,24 @@ class CoverageSonar extends CoverageBase {
      * Return links to the Sonar project and coverage metadata
      * @method getInfo
      * @param   {Object}  config
-     * @param   {Object}  [config.annotations]  Screwdriver job annotations
-     * @param   {String}  config.jobId          Screwdriver job ID
-     * @param   {String}  config.jobName        Screwdriver job name
-     * @param   {String}  config.pipelineId     Screwdriver pipeline ID (if enterprise is enabled)
-     * @param   {String}  config.pipelineName   Screwdriver pipeline name
-     * @param   {String}  [config.prNum]        Pull request number
-     * @param   {String}  config.startTime      Job start time
-     * @param   {String}  config.endTime        Job end time
-     * @return  {Promise}                       An object with:
-     *                                          - tests success percentage
-     *                                          - coverage percentage
-     *                                          - project url
-     *                                          - Sonar env vars
+     * @param   {Object}  [config.annotations]      Screwdriver job annotations
+     * @param   {String}  config.jobId              Screwdriver job ID
+     * @param   {String}  config.jobName            Screwdriver job name
+     * @param   {String}  config.pipelineId         Screwdriver pipeline ID (if enterprise is enabled)
+     * @param   {String}  config.pipelineName       Screwdriver pipeline name
+     * @param   {String}  [config.prNum]            Pull request number
+     * @param   {String}  config.startTime          Job start time
+     * @param   {String}  config.endTime            Job end time
+     * @param   {String}  [config.sonarProjectKey]  Sonar project key
+     * @return  {Promise}                           An object with:
+     *                                              - tests success percentage
+     *                                              - coverage percentage
+     *                                              - project url
+     *                                              - Sonar env vars
      */
-    _getInfo({ annotations, jobId, jobName, startTime, endTime, pipelineId, pipelineName, prNum }) {
-        const { projectKey, projectName } = getProjectData({
+    _getInfo({ annotations, jobId, jobName, startTime, endTime, pipelineId,
+        pipelineName, prNum, sonarProjectKey }) {
+        const { projectKey: computedProjectKey, projectName } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
             jobId,
             pipelineId,
@@ -304,6 +306,7 @@ class CoverageSonar extends CoverageBase {
             pipelineName,
             jobName
         });
+        const projectKey = sonarProjectKey || computedProjectKey;
         const infoObject = {
             envVars: {
                 SD_SONAR_AUTH_URL: sdCoverageAuthUrl,

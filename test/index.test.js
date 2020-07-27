@@ -227,6 +227,33 @@ describe('index test', () => {
             });
         });
 
+        it('returns links with only sonarProjectKey, startTime, and endTime passed in', () => {
+            requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+
+            return sonarPlugin.getInfo({
+                sonarProjectKey: 'pipeline:123',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
+            }).then((result) => {
+                assert.calledWith(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                        SD_SONAR_PROJECT_NAME: 'undefined:undefined'
+                    }
+                });
+            });
+        });
+
         it('returns links for enterprise', () => {
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(0).resolves(coverageObject);
@@ -531,7 +558,7 @@ describe('index test', () => {
                 assert.callCount(requestMock, 4);
                 assert.call(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private` }));
+                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}` }));
                 assert.strictEqual(result, 'accesstoken');
             });
         });
@@ -546,7 +573,7 @@ describe('index test', () => {
                 assert.callCount(requestMock, 4);
                 assert.call(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private` }));
+                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}` }));
                 assert.strictEqual(result, 'accesstoken');
             });
         });
