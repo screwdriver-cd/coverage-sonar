@@ -115,6 +115,7 @@ describe('index test', () => {
 
             assert.ok(sonarPlugin);
             assert.property(sonarPlugin, 'getAccessToken');
+            assert.property(sonarPlugin, 'getInfo');
             assert.property(sonarPlugin, 'getUploadCoverageCmd');
             assert.deepEqual(sonarPlugin.config, config);
         });
@@ -123,6 +124,7 @@ describe('index test', () => {
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             assert.ok(enterpriseSonarPlugin);
             assert.property(enterpriseSonarPlugin, 'getAccessToken');
+            assert.property(sonarPlugin, 'getInfo');
             assert.property(enterpriseSonarPlugin, 'getUploadCoverageCmd');
             assert.deepEqual(enterpriseSonarPlugin.config, enterpriseConfig);
         });
@@ -133,7 +135,30 @@ describe('index test', () => {
             const commandsPath = path.resolve(__dirname, './data/commands.txt');
             const commands = fs.readFileSync(commandsPath, 'utf8').replace('\n', '');
 
-            return sonarPlugin.getUploadCoverageCmd({ build: {} }).then(result =>
+            return sonarPlugin.getUploadCoverageCmd({
+                build: {},
+                pipeline: { id: 123, name: 'd2lam/mytest' },
+                job: { id: 456, name: 'main', permutations: [{}] }
+            }).then(result =>
+                assert.deepEqual(result, commands)
+            );
+        });
+
+        it('constructs upload coverage command correctly with annotations', () => {
+            const commandsPath = path.resolve(__dirname, './data/commands_with_annotation.txt');
+            const commands = fs.readFileSync(commandsPath, 'utf8').replace('\n', '');
+
+            return sonarPlugin.getUploadCoverageCmd({
+                build: {},
+                pipeline: { id: 123, name: 'd2lam/mytest' },
+                job: {
+                    id: 456,
+                    name: 'main',
+                    permutations: [{
+                        annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
+                    }]
+                }
+            }).then(result =>
                 assert.deepEqual(result, commands)
             );
         });
@@ -148,9 +173,11 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
-                assert.call(requestMock, sinon.match({ uri:
+                assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
                 assert.deepEqual(result, {
@@ -161,7 +188,67 @@ describe('index test', () => {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1'
+                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
+                    }
+                });
+            });
+        });
+
+        it('returns links with pipeline scope annotation', () => {
+            requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+
+            return sonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineId: 123,
+                pipelineName: 'd2lam/mytest',
+                annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
+            }).then((result) => {
+                assert.calledWith(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
+                    }
+                });
+            });
+        });
+
+        it('returns links with only coverageProjectKey, startTime, and endTime passed in', () => {
+            requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+
+            return sonarPlugin.getInfo({
+                coverageProjectKey: 'pipeline:123',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z'
+            }).then((result) => {
+                assert.calledWith(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: false,
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                        SD_SONAR_PROJECT_NAME: 'undefined:undefined'
                     }
                 });
             });
@@ -178,9 +265,11 @@ describe('index test', () => {
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z',
                 pipelineId: 123,
-                prNum: null
+                prNum: null,
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
-                assert.call(requestMock, sinon.match({ uri:
+                assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
                 assert.deepEqual(result, {
@@ -191,7 +280,8 @@ describe('index test', () => {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
-                        SD_SONAR_PROJECT_KEY: 'pipeline:123'
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
                     }
                 });
             });
@@ -208,9 +298,11 @@ describe('index test', () => {
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z',
                 pipelineId: 123,
-                prNum: 56
+                prNum: 56,
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
-                assert.call(requestMock, sinon.match({ uri:
+                assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56` }));
                 assert.deepEqual(result, {
@@ -221,7 +313,42 @@ describe('index test', () => {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
-                        SD_SONAR_PROJECT_KEY: 'pipeline:123'
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
+                    }
+                });
+            });
+        });
+
+        it('returns links for enterprise PR with job scope annotation', () => {
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(0).resolves(coverageObject);
+            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+
+            return enterpriseSonarPlugin.getInfo({
+                buildId: '123',
+                jobId: '1',
+                startTime: '2017-10-19T13:00:00.123Z',
+                endTime: '2017-10-19T15:00:00.234Z',
+                pipelineId: 123,
+                prNum: 56,
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest',
+                annotations: { 'screwdriver.cd/coverageScope': 'job' }
+            }).then((result) => {
+                assert.calledWith(requestMock, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                    envVars: {
+                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: true,
+                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
             });
@@ -231,14 +358,17 @@ describe('index test', () => {
             requestMock.onCall(0).resolves(coverageObject);
 
             return sonarPlugin.getInfo({
-                jobId: '1'
+                jobId: '1',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
                 assert.deepEqual(result, {
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1'
+                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
             });
@@ -254,7 +384,9 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
                 assert.callCount(loggerMock.error, 1);
                 assert.deepEqual(result, {
@@ -265,7 +397,8 @@ describe('index test', () => {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1'
+                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
             });
@@ -281,7 +414,9 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
                 assert.notCalled(loggerMock.error);
                 assert.deepEqual(result, {
@@ -292,7 +427,8 @@ describe('index test', () => {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1'
+                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
             });
@@ -308,7 +444,9 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then((result) => {
                 assert.callCount(loggerMock.error, 1);
                 assert.deepEqual(result, {
@@ -319,7 +457,8 @@ describe('index test', () => {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1'
+                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
             });
@@ -335,7 +474,9 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then(result => assert.deepEqual(result, {
                 coverage: '98.8',
                 tests: 'N/A',
@@ -344,7 +485,8 @@ describe('index test', () => {
                     SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
-                    SD_SONAR_PROJECT_KEY: 'job:1'
+                    SD_SONAR_PROJECT_KEY: 'job:1',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                 }
             }));
         });
@@ -359,7 +501,9 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then(result => assert.deepEqual(result, {
                 coverage: '98.8',
                 tests: 'N/A',
@@ -368,7 +512,8 @@ describe('index test', () => {
                     SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
-                    SD_SONAR_PROJECT_KEY: 'job:1'
+                    SD_SONAR_PROJECT_KEY: 'job:1',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                 }
             }));
         });
@@ -383,7 +528,9 @@ describe('index test', () => {
                 buildId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
+                endTime: '2017-10-19T15:00:00.234Z',
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
             }).then(result => assert.deepEqual(result, {
                 coverage: '98.8',
                 tests: '9/10',
@@ -392,7 +539,8 @@ describe('index test', () => {
                     SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
-                    SD_SONAR_PROJECT_KEY: 'job:1'
+                    SD_SONAR_PROJECT_KEY: 'job:1',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                 }
             }));
         });
@@ -406,11 +554,11 @@ describe('index test', () => {
 
             requestMock.onCall(3).resolves({ token: 'accesstoken' });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then((result) => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
                 assert.callCount(requestMock, 4);
                 assert.call(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private` }));
+                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}` }));
                 assert.strictEqual(result, 'accesstoken');
             });
         });
@@ -421,11 +569,11 @@ describe('index test', () => {
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(3).resolves({ token: 'accesstoken' });
 
-            return enterpriseSonarPlugin.getAccessToken(buildCredentials).then((result) => {
+            return enterpriseSonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
                 assert.callCount(requestMock, 4);
                 assert.call(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}&visibility=private` }));
+                    `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}` }));
                 assert.strictEqual(result, 'accesstoken');
             });
         });
@@ -437,7 +585,7 @@ describe('index test', () => {
             });
             requestMock.onCall(3).resolves({ token: 'accesstoken' });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then((result) => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
                 assert.callCount(requestMock, 4);
                 assert.strictEqual(result, 'accesstoken');
             });
@@ -450,7 +598,7 @@ describe('index test', () => {
             });
             requestMock.onCall(3).resolves({ token: 'accesstoken' });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then((result) => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
                 assert.callCount(requestMock, 4);
                 assert.strictEqual(result, 'accesstoken');
             });
@@ -462,7 +610,7 @@ describe('index test', () => {
                 message: '500 - internal server error'
             });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then(() => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(() => {
                 assert.throws(new Error('should not get here'));
             }).catch(err => assert.deepEqual(err.message,
                 'Failed to create project job:1: 500 - internal server error'));
@@ -474,7 +622,7 @@ describe('index test', () => {
                 message: '500 - internal server error'
             });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then(() => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(() => {
                 assert.throws(new Error('should not get here'));
             }).catch(err => assert.deepEqual(err.message,
                 'Failed to create user user-job-1: 500 - internal server error'));
@@ -486,7 +634,7 @@ describe('index test', () => {
                 message: '500 - internal server error'
             });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then(() => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(() => {
                 assert.throws(new Error('should not get here'));
             }).catch(err => assert.deepEqual(err.message,
                 'Failed to grant user user-job-1 permission: 500 - internal server error'));
@@ -498,7 +646,7 @@ describe('index test', () => {
                 message: '500 - internal server error'
             });
 
-            return sonarPlugin.getAccessToken(buildCredentials).then(() => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(() => {
                 assert.throws(new Error('should not get here'));
             }).catch(err => assert.deepEqual(err.message,
                 'Failed to generate user user-job-1 token: 500 - internal server error'));
