@@ -289,7 +289,7 @@ class CoverageSonar extends CoverageBase {
      * @param   {String}  [config.prNum]            Pull request number
      * @param   {String}  config.startTime          Job start time
      * @param   {String}  config.endTime            Job end time
-     * @param   {String}  [config.sonarProjectKey]  Sonar project key
+     * @param   {String}  [config.coverageProjectKey]  Sonar project key
      * @return  {Promise}                           An object with:
      *                                              - tests success percentage
      *                                              - coverage percentage
@@ -297,7 +297,7 @@ class CoverageSonar extends CoverageBase {
      *                                              - Sonar env vars
      */
     _getInfo({ annotations, jobId, jobName, startTime, endTime, pipelineId,
-        pipelineName, prNum, sonarProjectKey }) {
+        pipelineName, prNum, coverageProjectKey }) {
         const { projectKey: computedProjectKey, projectName } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
             jobId,
@@ -306,7 +306,7 @@ class CoverageSonar extends CoverageBase {
             pipelineName,
             jobName
         });
-        const projectKey = sonarProjectKey || computedProjectKey;
+        const projectKey = coverageProjectKey || computedProjectKey;
         const infoObject = {
             envVars: {
                 SD_SONAR_AUTH_URL: sdCoverageAuthUrl,

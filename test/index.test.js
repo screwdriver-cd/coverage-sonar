@@ -227,12 +227,12 @@ describe('index test', () => {
             });
         });
 
-        it('returns links with only sonarProjectKey, startTime, and endTime passed in', () => {
+        it('returns links with only coverageProjectKey, startTime, and endTime passed in', () => {
             requestMock.onCall(0).resolves(coverageObject);
             const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
 
             return sonarPlugin.getInfo({
-                sonarProjectKey: 'pipeline:123',
+                coverageProjectKey: 'pipeline:123',
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z'
             }).then((result) => {
