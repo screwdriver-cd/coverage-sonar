@@ -334,20 +334,21 @@ describe('index test', () => {
                 prNum: 56,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest',
-                annotations: { 'screwdriver.cd/coverageScope': 'job' }
+                annotations: { 'screwdriver.cd/coverageScope': 'job' },
+                prParentJobId: 456
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A456&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
                 assert.deepEqual(result, {
                     coverage: '98.8',
                     tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A456`,
                     envVars: {
                         SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
-                        SD_SONAR_PROJECT_KEY: 'job:1',
+                        SD_SONAR_PROJECT_KEY: 'job:456',
                         SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });

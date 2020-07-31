@@ -260,11 +260,11 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ annotations, buildCredentials, jobId }) {
-        const { jobId: buildJobId, pipelineId } = buildCredentials;
+    _getAccessToken({ annotations, buildCredentials }) {
+        const { jobId, pipelineId, prParentJobId } = buildCredentials;
         const { projectKey, username } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
-            jobId: jobId || buildJobId,
+            jobId: prParentJobId || jobId,
             pipelineId,
             annotations
         });
@@ -287,6 +287,7 @@ class CoverageSonar extends CoverageBase {
      * @param   {String}  config.pipelineId         Screwdriver pipeline ID (if enterprise is enabled)
      * @param   {String}  config.pipelineName       Screwdriver pipeline name
      * @param   {String}  [config.prNum]            Pull request number
+     * @param   {String}  [config.prParentJobId]    Pull request parent job ID
      * @param   {String}  config.startTime          Job start time
      * @param   {String}  config.endTime            Job end time
      * @param   {String}  [config.coverageProjectKey]  Sonar project key
@@ -297,10 +298,10 @@ class CoverageSonar extends CoverageBase {
      *                                              - Sonar env vars
      */
     _getInfo({ annotations, jobId, jobName, startTime, endTime, pipelineId,
-        pipelineName, prNum, coverageProjectKey }) {
+        pipelineName, prNum, coverageProjectKey, prParentJobId }) {
         const { projectKey: computedProjectKey, projectName } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
-            jobId,
+            jobId: prNum ? prParentJobId : jobId,
             pipelineId,
             annotations,
             pipelineName,
