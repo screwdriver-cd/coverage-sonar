@@ -260,11 +260,11 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ annotations, buildCredentials }) {
-        const { jobId, pipelineId } = buildCredentials;
+    _getAccessToken({ annotations, buildCredentials, jobId }) {
+        const { jobId: buildJobId, pipelineId } = buildCredentials;
         const { projectKey, username } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
-            jobId,
+            jobId: jobId || buildJobId,
             pipelineId,
             annotations
         });
