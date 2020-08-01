@@ -43,7 +43,7 @@
     "joi": "^13.4.0",
     "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
-    "screwdriver-coverage-base": "^2.0.0",
+    "screwdriver-coverage-base": "file:../coverage-base",
     "screwdriver-logger": "^1.0.1",
     "uuid": "^3.2.1"
   },

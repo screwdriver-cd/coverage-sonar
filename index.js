@@ -12,7 +12,6 @@ const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
 
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
-const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 let adminToken;
 let sonarHost;
@@ -200,14 +199,28 @@ function getMetrics({ projectKey, startTime, endTime, prNum }) {
  * @param  {String}     config.pipelineName         Screwdriver pipeline name
  * @return {Object}                                 Sonar project key, project name, and username
  */
-function getProjectData({ annotations, enterpriseEnabled, jobId, jobName, pipelineId,
-    pipelineName }) {
-    // Figure out default scope: pipeline scope for enterprise edition, job scope for everything else
-    const defaultScope = enterpriseEnabled ? 'pipeline' : 'job';
-    // Use user-configured scope or default scope
-    const scope = (annotations && annotations[COVERAGE_SCOPE_ANNOTATION]) || defaultScope;
+function getProjectData({ scope, enterpriseEnabled, jobId, jobName, pipelineId,
+    pipelineName, projectKey }) {
+    // Determine scope based on projectKey
+    if (projectKey) {
+        const [projectScope, id] = projectKey.split(':');
 
-    if (scope === 'pipeline') {
+        return {
+            projectKey,
+            username: `user-${projectScope}-${id}`,
+            projectName: projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`
+        };
+    }
+
+    // Figure out default scope: pipeline scope for enterprise edition, job scope for everything else
+    let coverageScope = enterpriseEnabled ? 'pipeline' : 'job';
+
+    // Use user-configured scope or default scope
+    if (scope) {
+        coverageScope = scope;
+    }
+
+    if (coverageScope === 'pipeline') {
         return {
             projectKey: `pipeline:${pipelineId}`,
             projectName: pipelineName,
@@ -260,20 +273,25 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ annotations, buildCredentials }) {
+    _getAccessToken({ scope, username, projectKey, buildCredentials }) {
         const { jobId, pipelineId, prParentJobId } = buildCredentials;
-        const { projectKey, username } = getProjectData({
-            enterpriseEnabled: sonarEnterprise,
-            jobId: prParentJobId || jobId,
-            pipelineId,
-            annotations
-        });
+        let projectData = { username, projectKey };
+
+        if (!username || !projectKey) {
+            projectData = getProjectData({
+                enterpriseEnabled: sonarEnterprise,
+                jobId: prParentJobId || jobId,
+                pipelineId,
+                scope
+            });
+        }
+
         const password = uuidv4();
 
-        return createProject(projectKey)
-            .then(() => createUser(username, password))
-            .then(() => grantUserPermission(username, projectKey))
-            .then(() => generateToken(username))
+        return createProject(projectData.projectKey)
+            .then(() => createUser(projectData.username, password))
+            .then(() => grantUserPermission(projectData.username, projectKey))
+            .then(() => generateToken(projectData.username))
             .then(res => res.token);
     }
 
@@ -297,20 +315,21 @@ class CoverageSonar extends CoverageBase {
      *                                              - project url
      *                                              - Sonar env vars
      */
-    _getInfo({ annotations, jobId, jobName, startTime, endTime, pipelineId,
-        pipelineName, prNum, coverageProjectKey, prParentJobId }) {
-        const { projectKey: computedProjectKey, projectName } = getProjectData({
+    _getInfo({ scope, jobId, jobName, startTime, endTime, pipelineId,
+        pipelineName, prNum, projectKey: coverageProjectKey, prParentJobId }) {
+        const { projectKey, projectName, username } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
-            jobId: prNum ? prParentJobId : jobId,
+            jobId: prParentJobId || jobId,
             pipelineId,
-            annotations,
+            scope,
             pipelineName,
-            jobName
+            jobName,
+            projectKey: coverageProjectKey
         });
-        const projectKey = coverageProjectKey || computedProjectKey;
         const infoObject = {
             envVars: {
-                SD_SONAR_AUTH_URL: sdCoverageAuthUrl,
+                // eslint-disable-next-line max-len
+                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&username=${username}`,
                 SD_SONAR_HOST: sonarHost,
                 SD_SONAR_ENTERPRISE: sonarEnterprise,
                 SD_SONAR_PROJECT_KEY: projectKey,
@@ -347,12 +366,12 @@ class CoverageSonar extends CoverageBase {
      * @param  {String}  config.pipelineName   Screwdriver pipeline name
      * @return {Promise}     Shell commands to upload coverage
      */
-    _getUploadCoverageCmd({ annotations, jobId, jobName, pipelineId, pipelineName }) {
+    _getUploadCoverageCmd({ scope, jobId, jobName, pipelineId, pipelineName }) {
         const { projectKey, projectName } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
             jobId,
             pipelineId,
-            annotations,
+            scope,
             pipelineName,
             jobName
         });

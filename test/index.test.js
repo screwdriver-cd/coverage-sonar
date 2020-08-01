@@ -165,12 +165,14 @@ describe('index test', () => {
     });
 
     describe('getInfo', () => {
+        const sdSonarAuthUrl = 'https://api.screwdriver.cd/v4/coverage/token';
+
         it('returns links', () => {
             requestMock.onCall(0).resolves(coverageObject);
             const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z',
@@ -185,7 +187,7 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -207,7 +209,7 @@ describe('index test', () => {
                 jobName: 'main',
                 pipelineId: 123,
                 pipelineName: 'd2lam/mytest',
-                annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
+                scope: 'pipeline'
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
@@ -217,7 +219,8 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -227,12 +230,14 @@ describe('index test', () => {
             });
         });
 
+        // eslint-disable-next-line max-len
         it('returns links with only coverageProjectKey, startTime, and endTime passed in', () => {
             requestMock.onCall(0).resolves(coverageObject);
             const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
 
             return sonarPlugin.getInfo({
-                coverageProjectKey: 'pipeline:123',
+                projectKey: 'pipeline:123',
+                pipelineName: 'd2lam/mytest',
                 startTime: '2017-10-19T13:00:00.123Z',
                 endTime: '2017-10-19T15:00:00.234Z'
             }).then((result) => {
@@ -244,11 +249,12 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
-                        SD_SONAR_PROJECT_NAME: 'undefined:undefined'
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
                     }
                 });
             });
@@ -277,7 +283,8 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -300,7 +307,8 @@ describe('index test', () => {
                 pipelineId: 123,
                 prNum: 56,
                 jobName: 'main',
-                pipelineName: 'd2lam/mytest'
+                pipelineName: 'd2lam/mytest',
+                prParentJobId: 456
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
@@ -310,7 +318,8 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -334,7 +343,7 @@ describe('index test', () => {
                 prNum: 56,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest',
-                annotations: { 'screwdriver.cd/coverageScope': 'job' },
+                scope: 'job',
                 prParentJobId: 456
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
@@ -345,7 +354,8 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A456`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:456&username=user-job-456`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'job:456',
@@ -365,7 +375,7 @@ describe('index test', () => {
             }).then((result) => {
                 assert.deepEqual(result, {
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -395,7 +405,7 @@ describe('index test', () => {
                     tests: 'N/A',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -425,7 +435,7 @@ describe('index test', () => {
                     tests: 'N/A',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -455,7 +465,7 @@ describe('index test', () => {
                     tests: 'N/A',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -483,7 +493,7 @@ describe('index test', () => {
                 tests: 'N/A',
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
-                    SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
                     SD_SONAR_PROJECT_KEY: 'job:1',
@@ -510,7 +520,7 @@ describe('index test', () => {
                 tests: 'N/A',
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
-                    SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
                     SD_SONAR_PROJECT_KEY: 'job:1',
@@ -537,7 +547,7 @@ describe('index test', () => {
                 tests: '9/10',
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
-                    SD_SONAR_AUTH_URL: 'https://api.screwdriver.cd/v4/coverage/token',
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
                     SD_SONAR_PROJECT_KEY: 'job:1',
