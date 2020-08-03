@@ -191,34 +191,39 @@ function getMetrics({ projectKey, startTime, endTime, prNum }) {
  * - job annotation
  * @method getProjectData
  * @param  {Object}     config
- * @param  {Object}     [config.annotations]        Screwdriver job annotations
+ * @param  {Object}     [config.scope]              Coverage scope (pipeline or job)
  * @param  {Boolean}    config.enterpriseEnabled    If enterprise is enabled
  * @param  {String}     config.jobId                Screwdriver job ID
  * @param  {String}     config.jobName              Screwdriver job name
  * @param  {String}     config.pipelineId           Screwdriver pipeline ID
  * @param  {String}     config.pipelineName         Screwdriver pipeline name
+ * @param  {String}     [config.projectKey]         Sonar project key
+ * @param  {String}     [config.prNum]              PR number
+ * @param  {String}     [config.prParentJobId]      Screwdriver PR parent job ID
  * @return {Object}                                 Sonar project key, project name, and username
  */
-function getProjectData({ scope, enterpriseEnabled, jobId, jobName, pipelineId,
-    pipelineName, projectKey }) {
+function getProjectData({ scope, enterpriseEnabled, jobId: buildJobId,
+    jobName: buildJobName, pipelineId, pipelineName, projectKey, prParentJobId, prNum }) {
+    let jobId = buildJobId;
+    let jobName = buildJobName;
+
     // Determine scope based on projectKey
     if (projectKey) {
         const [projectScope, id] = projectKey.split(':');
+        const projectName = projectScope === 'pipeline' ?
+            pipelineName : `${pipelineName}:${jobName}`;
+        const username = (prNum && projectScope === 'job') ?
+            `user-${projectScope}-${prParentJobId}` : `user-${projectScope}-${id}`;
 
         return {
             projectKey,
-            username: `user-${projectScope}-${id}`,
-            projectName: projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`
+            username,
+            projectName
         };
     }
 
-    // Figure out default scope: pipeline scope for enterprise edition, job scope for everything else
-    let coverageScope = enterpriseEnabled ? 'pipeline' : 'job';
-
-    // Use user-configured scope or default scope
-    if (scope) {
-        coverageScope = scope;
-    }
+    // Use user-configured scope; otherwise figure out default scope: pipeline scope for enterprise edition, job scope for everything else
+    const coverageScope = scope || (enterpriseEnabled ? 'pipeline' : 'job');
 
     if (coverageScope === 'pipeline') {
         return {
@@ -226,6 +231,15 @@ function getProjectData({ scope, enterpriseEnabled, jobId, jobName, pipelineId,
             projectName: pipelineName,
             username: `user-pipeline-${pipelineId}`
         };
+    }
+
+    // Use prParentJobId as ID for PRs
+    if (prNum && coverageScope === 'job') {
+        const prRegex = /^PR-(\d+)(?::([\w-]+))?$/;
+        const prNameMatch = jobName.match(prRegex);
+
+        jobId = prParentJobId;
+        jobName = prNameMatch && prNameMatch.length > 1 ? prNameMatch[2] : jobName;
     }
 
     return {
@@ -258,6 +272,15 @@ class CoverageSonar extends CoverageBase {
             sonarEnterprise: joi.boolean().default(false)
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
+        this.uploadCommands = COMMANDS
+            .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
+            .replace('$SD_SONAR_HOST', sonarHost)
+            .replace('$SD_UI_URL', this.config.sdUiUrl)
+            .replace('$SD_SONAR_ENTERPRISE', sonarEnterprise)
+            .split('\n');
+
+        this.uploadCommands[this.uploadCommands.length - 1] += ' || true';
+
         sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
         sonarHost = this.config.sonarHost;
@@ -268,8 +291,10 @@ class CoverageSonar extends CoverageBase {
      * Return an access token that build can use to talk to coverage server
      * @method getAccessToken
      * @param {Object} config
-     * @param {Object} [config.annotations]     Screwdriver job annotations
+     * @param {String} [config.scope]           Coverage scope
      * @param {Object} config.buildCredentials  Information stored in a build JWT
+     * @param {String} config.projectKey        Sonar project key
+     * @param {String} config.username          Sonar username
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
@@ -299,7 +324,7 @@ class CoverageSonar extends CoverageBase {
      * Return links to the Sonar project and coverage metadata
      * @method getInfo
      * @param   {Object}  config
-     * @param   {Object}  [config.annotations]      Screwdriver job annotations
+     * @param   {Object}  [config.scope]            Coverage scope
      * @param   {String}  config.jobId              Screwdriver job ID
      * @param   {String}  config.jobName            Screwdriver job name
      * @param   {String}  config.pipelineId         Screwdriver pipeline ID (if enterprise is enabled)
@@ -308,7 +333,7 @@ class CoverageSonar extends CoverageBase {
      * @param   {String}  [config.prParentJobId]    Pull request parent job ID
      * @param   {String}  config.startTime          Job start time
      * @param   {String}  config.endTime            Job end time
-     * @param   {String}  [config.coverageProjectKey]  Sonar project key
+     * @param   {String}  [config.projectKey]       Sonar project key
      * @return  {Promise}                           An object with:
      *                                              - tests success percentage
      *                                              - coverage percentage
@@ -319,12 +344,14 @@ class CoverageSonar extends CoverageBase {
         pipelineName, prNum, projectKey: coverageProjectKey, prParentJobId }) {
         const { projectKey, projectName, username } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
-            jobId: prParentJobId || jobId,
+            jobId,
             pipelineId,
             scope,
             pipelineName,
             jobName,
-            projectKey: coverageProjectKey
+            projectKey: coverageProjectKey,
+            prParentJobId,
+            prNum
         });
         const infoObject = {
             envVars: {
@@ -359,34 +386,15 @@ class CoverageSonar extends CoverageBase {
      * Get shell command to upload coverage to server
      * @method _getUploadCoverageCmd
      * @param  {Object}  config
-     * @param  {Object}  [config.annotations]  Screwdriver job annotations
+     * @param  {Object}  [config.scope]        Coverage scope
      * @param  {String}  config.jobId          Screwdriver job ID
      * @param  {String}  config.jobName        Screwdriver job name
      * @param  {String}  config.pipelineId     Screwdriver pipeline ID
      * @param  {String}  config.pipelineName   Screwdriver pipeline name
      * @return {Promise}     Shell commands to upload coverage
      */
-    _getUploadCoverageCmd({ scope, jobId, jobName, pipelineId, pipelineName }) {
-        const { projectKey, projectName } = getProjectData({
-            enterpriseEnabled: sonarEnterprise,
-            jobId,
-            pipelineId,
-            scope,
-            pipelineName,
-            jobName
-        });
-        const uploadCommands = COMMANDS
-            .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
-            .replace('$SD_SONAR_HOST', sonarHost)
-            .replace('$SD_UI_URL', this.config.sdUiUrl)
-            .replace('$SD_SONAR_ENTERPRISE', sonarEnterprise)
-            .replace('$SD_SONAR_PROJECT_KEY', projectKey)
-            .replace('$SD_SONAR_PROJECT_NAME', projectName)
-            .split('\n');
-
-        uploadCommands[uploadCommands.length - 1] += ' || true';
-
-        return Promise.resolve(uploadCommands.join(' && '));
+    _getUploadCoverageCmd() {
+        return Promise.resolve(this.uploadCommands.join(' && '));
     }
 }
 
