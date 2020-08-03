@@ -212,24 +212,26 @@ function getProjectData({ scope, enterpriseEnabled, jobId: buildJobId,
         const [projectScope, id] = projectKey.split(':');
         const projectName = projectScope === 'pipeline' ?
             pipelineName : `${pipelineName}:${jobName}`;
-        const username = (prNum && projectScope === 'job') ?
-            `user-${projectScope}-${prParentJobId}` : `user-${projectScope}-${id}`;
+        const username = `user-${projectScope}-${id}`;
 
         return {
             projectKey,
             username,
-            projectName
+            projectName,
+            projectScope
         };
     }
 
     // Use user-configured scope; otherwise figure out default scope: pipeline scope for enterprise edition, job scope for everything else
-    const coverageScope = scope || (enterpriseEnabled ? 'pipeline' : 'job');
+    const userScope = (scope && scope !== 'undefined') ? scope : undefined;
+    const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
 
     if (coverageScope === 'pipeline') {
         return {
             projectKey: `pipeline:${pipelineId}`,
             projectName: pipelineName,
-            username: `user-pipeline-${pipelineId}`
+            username: `user-pipeline-${pipelineId}`,
+            projectScope: coverageScope
         };
     }
 
@@ -245,7 +247,8 @@ function getProjectData({ scope, enterpriseEnabled, jobId: buildJobId,
     return {
         projectKey: `job:${jobId}`,
         projectName: `${pipelineName}:${jobName}`,
-        username: `user-job-${jobId}`
+        username: `user-job-${jobId}`,
+        projectScope: coverageScope
     };
 }
 
@@ -342,7 +345,7 @@ class CoverageSonar extends CoverageBase {
      */
     _getInfo({ scope, jobId, jobName, startTime, endTime, pipelineId,
         pipelineName, prNum, projectKey: coverageProjectKey, prParentJobId }) {
-        const { projectKey, projectName, username } = getProjectData({
+        const { projectScope, projectKey, projectName, username } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
             jobId,
             pipelineId,
@@ -356,7 +359,7 @@ class CoverageSonar extends CoverageBase {
         const infoObject = {
             envVars: {
                 // eslint-disable-next-line max-len
-                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&username=${username}`,
+                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&username=${username}&scope=${projectScope}`,
                 SD_SONAR_HOST: sonarHost,
                 SD_SONAR_ENTERPRISE: sonarEnterprise,
                 SD_SONAR_PROJECT_KEY: projectKey,

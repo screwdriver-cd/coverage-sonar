@@ -187,7 +187,8 @@ describe('index test', () => {
                     tests: '7/10',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -220,7 +221,7 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
                         // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -250,7 +251,7 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
                         // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -284,7 +285,7 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
                         // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -319,7 +320,7 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                     envVars: {
                         // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123`,
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'pipeline:123',
@@ -355,7 +356,7 @@ describe('index test', () => {
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A456`,
                     envVars: {
                         // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:456&username=user-job-456`,
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:456&username=user-job-456&scope=job`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'job:456',
@@ -375,7 +376,8 @@ describe('index test', () => {
             }).then((result) => {
                 assert.deepEqual(result, {
                     envVars: {
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -405,7 +407,8 @@ describe('index test', () => {
                     tests: 'N/A',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -435,7 +438,8 @@ describe('index test', () => {
                     tests: 'N/A',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -465,7 +469,8 @@ describe('index test', () => {
                     tests: 'N/A',
                     projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                     envVars: {
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: false,
                         SD_SONAR_PROJECT_KEY: 'job:1',
@@ -493,7 +498,8 @@ describe('index test', () => {
                 tests: 'N/A',
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
-                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                    // eslint-disable-next-line max-len
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
                     SD_SONAR_PROJECT_KEY: 'job:1',
@@ -520,7 +526,8 @@ describe('index test', () => {
                 tests: 'N/A',
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
-                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                    // eslint-disable-next-line max-len
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
                     SD_SONAR_PROJECT_KEY: 'job:1',
@@ -547,7 +554,8 @@ describe('index test', () => {
                 tests: '9/10',
                 projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                 envVars: {
-                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1`,
+                    // eslint-disable-next-line max-len
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
                     SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                     SD_SONAR_ENTERPRISE: false,
                     SD_SONAR_PROJECT_KEY: 'job:1',
