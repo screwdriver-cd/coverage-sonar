@@ -275,6 +275,11 @@ class CoverageSonar extends CoverageBase {
             sonarEnterprise: joi.boolean().default(false)
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
+        sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
+        adminToken = this.config.adminToken;
+        sonarHost = this.config.sonarHost;
+        sonarEnterprise = this.config.sonarEnterprise;
+
         this.uploadCommands = COMMANDS
             .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
             .replace('$SD_SONAR_HOST', sonarHost)
@@ -283,11 +288,6 @@ class CoverageSonar extends CoverageBase {
             .split('\n');
 
         this.uploadCommands[this.uploadCommands.length - 1] += ' || true';
-
-        sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
-        adminToken = this.config.adminToken;
-        sonarHost = this.config.sonarHost;
-        sonarEnterprise = this.config.sonarEnterprise;
     }
 
     /**
