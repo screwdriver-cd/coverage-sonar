@@ -281,7 +281,6 @@ class CoverageSonar extends CoverageBase {
         sonarEnterprise = this.config.sonarEnterprise;
 
         this.uploadCommands = COMMANDS
-            .replace('$SD_SONAR_AUTH_URL', sdCoverageAuthUrl)
             .replace('$SD_SONAR_HOST', sonarHost)
             .replace('$SD_UI_URL', this.config.sdUiUrl)
             .replace('$SD_SONAR_ENTERPRISE', sonarEnterprise)
