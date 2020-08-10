@@ -236,7 +236,7 @@ function getProjectData({ scope, enterpriseEnabled, jobId: buildJobId,
     }
 
     // Use prParentJobId as ID for PRs
-    if (prNum && coverageScope === 'job') {
+    if (prNum && coverageScope === 'job' && enterpriseEnabled) {
         const prRegex = /^PR-(\d+)(?::([\w-]+))?$/;
         const prNameMatch = jobName.match(prRegex);
 
@@ -307,9 +307,11 @@ class CoverageSonar extends CoverageBase {
         if (!username || !projectKey) {
             projectData = getProjectData({
                 enterpriseEnabled: sonarEnterprise,
-                jobId: prParentJobId || jobId,
+                jobId,
+                prParentJobId,
                 pipelineId,
-                scope
+                scope,
+                projectKey
             });
         }
 
@@ -317,7 +319,7 @@ class CoverageSonar extends CoverageBase {
 
         return createProject(projectData.projectKey)
             .then(() => createUser(projectData.username, password))
-            .then(() => grantUserPermission(projectData.username, projectKey))
+            .then(() => grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => generateToken(projectData.username))
             .then(res => res.token);
     }
