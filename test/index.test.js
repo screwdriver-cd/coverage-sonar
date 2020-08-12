@@ -317,7 +317,7 @@ describe('index test', () => {
                 assert.deepEqual(result, {
                     coverage: '98.8',
                     tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123&pullRequest=56`,
                     envVars: {
                         // eslint-disable-next-line max-len
                         SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
@@ -349,11 +349,11 @@ describe('index test', () => {
             }).then((result) => {
                 assert.calledWith(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A456&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A456&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56` }));
                 assert.deepEqual(result, {
                     coverage: '98.8',
                     tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A456`,
+                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A456&pullRequest=56`,
                     envVars: {
                         // eslint-disable-next-line max-len
                         SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:456&username=user-job-456&scope=job`,
