@@ -373,7 +373,11 @@ class CoverageSonar extends CoverageBase {
             return getMetrics({ projectKey, startTime, endTime, prNum })
                 .then(({ coverage, tests }) => {
                     const componentId = encodeURIComponent(projectKey);
-                    const projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
+                    let projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
+
+                    if (projectKey.startsWith('pipeline') && prNum) {
+                        projectUrl = projectUrl.concat(`&pullRequest=${prNum}`);
+                    }
 
                     infoObject.coverage = coverage;
                     infoObject.tests = tests;

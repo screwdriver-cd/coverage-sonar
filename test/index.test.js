@@ -317,7 +317,7 @@ describe('index test', () => {
                 assert.deepEqual(result, {
                     coverage: '98.8',
                     tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123&pullRequest=56`,
                     envVars: {
                         // eslint-disable-next-line max-len
                         SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
