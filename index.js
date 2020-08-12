@@ -120,7 +120,7 @@ function generateToken(username) {
  * @param  {String} [config.prNum]      Pull request number
  * @return {Promise}                    Object with coverage percentage and tests success percentage
  */
-function getMetrics({ projectKey, startTime, endTime, prNum }) {
+function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: enterpriseEnabled }) {
     const componentId = encodeURIComponent(projectKey);
     // get timezone offset (e.g. -0700) from 'Fri May 11 2018 15:25:37 GMT-0700 (PDT)'
     const timezoneOffset = new Date().toString().match(/GMT(.*?) /)[1];
@@ -132,7 +132,7 @@ function getMetrics({ projectKey, startTime, endTime, prNum }) {
     // eslint-disable-next-line max-len
     let coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
 
-    if (projectKey.startsWith('pipeline') && prNum) {
+    if (enterpriseEnabled && prNum) {
         coverageUrl = coverageUrl.concat(`&pullRequest=${prNum}`);
     }
 
@@ -370,12 +370,12 @@ class CoverageSonar extends CoverageBase {
 
         // Only get coverage percentage if the steps are finished
         if (projectKey && startTime && endTime) {
-            return getMetrics({ projectKey, startTime, endTime, prNum })
+            return getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise })
                 .then(({ coverage, tests }) => {
                     const componentId = encodeURIComponent(projectKey);
                     let projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
 
-                    if (projectKey.startsWith('pipeline') && prNum) {
+                    if (sonarEnterprise && prNum) {
                         projectUrl = projectUrl.concat(`&pullRequest=${prNum}`);
                     }
 
