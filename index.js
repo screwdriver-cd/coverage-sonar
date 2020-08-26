@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const joi = require('joi');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const path = require('path');
 const request = require('request-promise-native');
 const uuidv4 = require('uuid/v4');
