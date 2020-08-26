@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-coverage-sonar",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "SonarQube implementation of the coverage-base class",
   "main": "index.js",
   "scripts": {
@@ -39,8 +39,8 @@
     "sinon": "^5.1.1"
   },
   "dependencies": {
-    "hoek": "^5.0.3",
-    "joi": "^13.4.0",
+    "@hapi/hoek": "^9.0.4",
+    "joi": "^17.2.1",
     "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
     "screwdriver-coverage-base": "^2.0.0",
