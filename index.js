@@ -68,6 +68,39 @@ function createUser(username, password) {
 }
 
 /**
+ * Configure Git App in SonarQube
+ * @param  {String} projectKey  Sonar project key
+ * @param  {String} projectName Sonar project name
+ * @return {Promise}            Nothing if Git App configured successfully
+ */
+function configureGitApp(projectKey, projectName) {
+    const gitApp = 'Screwdriver Sonar PR Checks';
+    const gitAppEncoded = encodeURIComponent(gitApp);
+    const componentId = encodeURIComponent(projectKey);
+    // eslint-disable-next-line max-len
+    const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true`;
+
+    if (!sonarEnterprise || !projectName) {
+        return Promise.resolve();
+    }
+
+    return request({
+        json: true,
+        method: 'POST',
+        uri: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+        auth: {
+            username: adminToken
+        }
+    }).catch((err) => {
+        // if cannot configure app, do not throw err
+        // eslint-disable-next-line max-len
+        logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${err.message}`);
+
+        return Promise.resolve();
+    });
+}
+
+/**
  * Give specific user push access to the project
  * @method grantUserPermission
  * @param  {String} username      Username of the user
@@ -370,7 +403,8 @@ class CoverageSonar extends CoverageBase {
 
         // Only get coverage percentage if the steps are finished
         if (projectKey && startTime && endTime) {
-            return getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise })
+            return configureGitApp(projectKey, projectName)
+                .then(() => getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise }))
                 .then(({ coverage, tests }) => {
                     const componentId = encodeURIComponent(projectKey);
                     let projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;

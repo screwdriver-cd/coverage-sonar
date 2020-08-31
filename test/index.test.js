@@ -166,117 +166,114 @@ describe('index test', () => {
 
     describe('getInfo', () => {
         const sdSonarAuthUrl = 'https://api.screwdriver.cd/v4/coverage/token';
+        const gitAppEncoded = 'Screwdriver%20Sonar%20PR%20Checks';
+        const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+        const startTime = '2017-10-19T13:00:00.123Z';
+        const endTime = '2017-10-19T15:00:00.234Z';
 
-        it('returns links', () => {
+        beforeEach(() => {
             requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
-
-            return sonarPlugin.getInfo({
-                pipelineId: '123',
-                jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
-                jobName: 'main',
-                pipelineName: 'd2lam/mytest'
-            }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
-                    // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
-                assert.deepEqual(result, {
-                    coverage: '98.8',
-                    tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
-                    envVars: {
-                        // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
-                        SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1',
-                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
-                    }
-                });
-            });
         });
 
-        it('returns links with pipeline scope annotation', () => {
-            requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
-
-            return sonarPlugin.getInfo({
-                buildId: '123',
-                jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
-                jobName: 'main',
-                pipelineId: 123,
-                pipelineName: 'd2lam/mytest',
-                scope: 'pipeline'
-            }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
+        it('returns links', () => sonarPlugin.getInfo({
+            pipelineId: '123',
+            jobId: '1',
+            startTime,
+            endTime,
+            jobName: 'main',
+            pipelineName: 'd2lam/mytest'
+        }).then((result) => {
+            assert.calledWith(requestMock, sinon.match({ uri:
+                // eslint-disable-next-line max-len
+                `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+            assert.deepEqual(result, {
+                coverage: '98.8',
+                tests: '7/10',
+                projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                envVars: {
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
-                assert.deepEqual(result, {
-                    coverage: '98.8',
-                    tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
-                    envVars: {
-                        // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
-                        SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
-                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
-                    }
-                });
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'job:1',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
+                }
             });
-        });
+            assert.callCount(requestMock, 1);
+        }));
+
+        it('returns links with pipeline scope annotation', () => sonarPlugin.getInfo({
+            jobId: '1',
+            startTime,
+            endTime,
+            jobName: 'main',
+            pipelineId: 123,
+            pipelineName: 'd2lam/mytest',
+            scope: 'pipeline'
+        }).then((result) => {
+            assert.calledWith(requestMock, sinon.match({ uri:
+                // eslint-disable-next-line max-len
+                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+            assert.deepEqual(result, {
+                coverage: '98.8',
+                tests: '7/10',
+                projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                envVars: {
+                    // eslint-disable-next-line max-len
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
+                }
+            });
+            assert.callCount(requestMock, 1);
+        }));
 
         // eslint-disable-next-line max-len
-        it('returns links with only coverageProjectKey, startTime, and endTime passed in', () => {
-            requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
-
-            return sonarPlugin.getInfo({
-                projectKey: 'pipeline:123',
-                pipelineName: 'd2lam/mytest',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z'
-            }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
+        it('returns links with only coverageProjectKey, startTime, and endTime passed in', () => sonarPlugin.getInfo({
+            projectKey: 'pipeline:123',
+            pipelineName: 'd2lam/mytest',
+            startTime,
+            endTime
+        }).then((result) => {
+            assert.calledWith(requestMock, sinon.match({ uri:
+                // eslint-disable-next-line max-len
+                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+            assert.deepEqual(result, {
+                coverage: '98.8',
+                tests: '7/10',
+                projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                envVars: {
                     // eslint-disable-next-line max-len
-                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
-                assert.deepEqual(result, {
-                    coverage: '98.8',
-                    tests: '7/10',
-                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
-                    envVars: {
-                        // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
-                        SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
-                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
-                    }
-                });
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
+                }
             });
-        });
+            assert.callCount(requestMock, 1);
+        }));
 
         it('returns links for enterprise', () => {
+            requestMock.onCall(0).resolves({});
+            requestMock.onCall(1).resolves(coverageObject);
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
 
             return enterpriseSonarPlugin.getInfo({
-                buildId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 pipelineId: 123,
                 prNum: null,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
+                assert.calledWith(requestMock.firstCall, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=d2lam/mytest&summaryCommentEnabled=true` }));
+                assert.calledWith(requestMock.secondCall, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
                 assert.deepEqual(result, {
@@ -292,26 +289,71 @@ describe('index test', () => {
                         SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
                     }
                 });
+                assert.callCount(requestMock, 2);
+            });
+        });
+
+        // eslint-disable-next-line max-len
+        it('returns links for enterprise and does not throw err if cannot configure Git app', () => {
+            requestMock.onCall(0).rejects({
+                statusCode: 500,
+                message: '500 - internal server error'
+            });
+            requestMock.onCall(1).resolves(coverageObject);
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+
+            return enterpriseSonarPlugin.getInfo({
+                jobId: '1',
+                startTime,
+                endTime,
+                pipelineId: 123,
+                prNum: null,
+                jobName: 'main',
+                pipelineName: 'd2lam/mytest'
+            }).then((result) => {
+                assert.calledWith(requestMock.firstCall, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=d2lam/mytest&summaryCommentEnabled=true` }));
+                assert.calledWith(requestMock.secondCall, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1` }));
+                assert.deepEqual(result, {
+                    coverage: '98.8',
+                    tests: '7/10',
+                    projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
+                    envVars: {
+                        // eslint-disable-next-line max-len
+                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&username=user-pipeline-123&scope=pipeline`,
+                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                        SD_SONAR_ENTERPRISE: true,
+                        SD_SONAR_PROJECT_KEY: 'pipeline:123',
+                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
+                    }
+                });
+                assert.callCount(requestMock, 2);
+                assert.callCount(loggerMock.error, 1);
             });
         });
 
         it('returns links for enterprise PR', () => {
+            requestMock.onCall(0).resolves({});
+            requestMock.onCall(1).resolves(coverageObject);
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
 
             return enterpriseSonarPlugin.getInfo({
-                buildId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 pipelineId: 123,
                 prNum: 56,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest',
                 prParentJobId: 456
             }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
+                assert.calledWith(requestMock.firstCall, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=d2lam/mytest&summaryCommentEnabled=true` }));
+                assert.calledWith(requestMock.secondCall, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56` }));
                 assert.deepEqual(result, {
@@ -327,19 +369,20 @@ describe('index test', () => {
                         SD_SONAR_PROJECT_NAME: 'd2lam/mytest'
                     }
                 });
+                assert.callCount(requestMock, 2);
             });
         });
 
         it('returns links for enterprise PR with job scope annotation', () => {
+            requestMock.onCall(0).resolves({});
+            requestMock.onCall(1).resolves(coverageObject);
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(0).resolves(coverageObject);
-            const timezoneOffset = encodeURIComponent(new Date().toString().match(/GMT(.*?) /)[1]);
+            const projectName = 'd2lam/mytest:main';
 
             return enterpriseSonarPlugin.getInfo({
-                buildId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 pipelineId: 123,
                 prNum: 56,
                 jobName: 'main',
@@ -347,7 +390,10 @@ describe('index test', () => {
                 scope: 'job',
                 prParentJobId: 456
             }).then((result) => {
-                assert.calledWith(requestMock, sinon.match({ uri:
+                assert.calledWith(requestMock.firstCall, sinon.match({ uri:
+                    // eslint-disable-next-line max-len
+                    `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=job%3A456&repository=${projectName}&summaryCommentEnabled=true` }));
+                assert.calledWith(requestMock.secondCall, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A456&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56` }));
                 assert.deepEqual(result, {
@@ -360,32 +406,30 @@ describe('index test', () => {
                         SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                         SD_SONAR_ENTERPRISE: true,
                         SD_SONAR_PROJECT_KEY: 'job:456',
-                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
+                        SD_SONAR_PROJECT_NAME: projectName
                     }
                 });
+                assert.callCount(requestMock, 2);
             });
         });
 
-        it('returns links when startTime and endTime are not passed in', () => {
-            requestMock.onCall(0).resolves(coverageObject);
-
-            return sonarPlugin.getInfo({
-                jobId: '1',
-                jobName: 'main',
-                pipelineName: 'd2lam/mytest'
-            }).then((result) => {
-                assert.deepEqual(result, {
-                    envVars: {
-                        // eslint-disable-next-line max-len
-                        SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
-                        SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
-                        SD_SONAR_ENTERPRISE: false,
-                        SD_SONAR_PROJECT_KEY: 'job:1',
-                        SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
-                    }
-                });
+        it('returns links when startTime and endTime are not passed in', () => sonarPlugin.getInfo({
+            jobId: '1',
+            jobName: 'main',
+            pipelineName: 'd2lam/mytest'
+        }).then((result) => {
+            assert.deepEqual(result, {
+                envVars: {
+                    // eslint-disable-next-line max-len
+                    SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&username=user-job-1&scope=job`,
+                    SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                    SD_SONAR_ENTERPRISE: false,
+                    SD_SONAR_PROJECT_KEY: 'job:1',
+                    SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
+                }
             });
-        });
+            assert.callCount(requestMock, 0);
+        }));
 
         it('return N/A if it fails to get coverage and tests', () => {
             requestMock.onCall(0).rejects({
@@ -394,10 +438,10 @@ describe('index test', () => {
             });
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then((result) => {
@@ -415,6 +459,7 @@ describe('index test', () => {
                         SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
+                assert.callCount(requestMock, 1);
             });
         });
 
@@ -425,10 +470,10 @@ describe('index test', () => {
             });
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then((result) => {
@@ -446,6 +491,7 @@ describe('index test', () => {
                         SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
+                assert.callCount(requestMock, 1);
             });
         });
 
@@ -456,10 +502,10 @@ describe('index test', () => {
             });
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then((result) => {
@@ -477,6 +523,7 @@ describe('index test', () => {
                         SD_SONAR_PROJECT_NAME: 'd2lam/mytest:main'
                     }
                 });
+                assert.callCount(requestMock, 1);
             });
         });
 
@@ -487,10 +534,10 @@ describe('index test', () => {
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then(result => assert.deepEqual(result, {
@@ -515,10 +562,10 @@ describe('index test', () => {
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then(result => assert.deepEqual(result, {
@@ -543,10 +590,10 @@ describe('index test', () => {
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin.getInfo({
-                buildId: '123',
+                pipelineId: '123',
                 jobId: '1',
-                startTime: '2017-10-19T13:00:00.123Z',
-                endTime: '2017-10-19T15:00:00.234Z',
+                startTime,
+                endTime,
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest'
             }).then(result => assert.deepEqual(result, {
