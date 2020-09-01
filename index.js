@@ -333,11 +333,11 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ scope, username, projectKey, buildCredentials }) {
+    _getAccessToken({ scope, username, projectKey, projectName, buildCredentials }) {
         const { jobId, pipelineId, prParentJobId } = buildCredentials;
-        let projectData = { username, projectKey };
+        let projectData = { username, projectKey, projectName };
 
-        if (!username || !projectKey) {
+        if (!username || !projectKey || !projectName) {
             projectData = getProjectData({
                 enterpriseEnabled: sonarEnterprise,
                 jobId,
@@ -351,6 +351,7 @@ class CoverageSonar extends CoverageBase {
         const password = uuidv4();
 
         return createProject(projectData.projectKey)
+            .then(() => configureGitApp(projectData.projectKey, projectData.projectName))
             .then(() => createUser(projectData.username, password))
             .then(() => grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => generateToken(projectData.username))
@@ -390,10 +391,11 @@ class CoverageSonar extends CoverageBase {
             prParentJobId,
             prNum
         });
+
         const infoObject = {
             envVars: {
                 // eslint-disable-next-line max-len
-                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&username=${username}&scope=${projectScope}`,
+                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&projectName=${projectName}&username=${username}&scope=${projectScope}`,
                 SD_SONAR_HOST: sonarHost,
                 SD_SONAR_ENTERPRISE: sonarEnterprise,
                 SD_SONAR_PROJECT_KEY: projectKey,
@@ -403,8 +405,7 @@ class CoverageSonar extends CoverageBase {
 
         // Only get coverage percentage if the steps are finished
         if (projectKey && startTime && endTime) {
-            return configureGitApp(projectKey, projectName)
-                .then(() => getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise }))
+            return getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise })
                 .then(({ coverage, tests }) => {
                     const componentId = encodeURIComponent(projectKey);
                     let projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
