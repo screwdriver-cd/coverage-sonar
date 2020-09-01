@@ -12,11 +12,13 @@ const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
 
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
+const DEFAULT_GIT_APP_NAME = 'Screwdriver Sonar PR Checks';
 
 let adminToken;
 let sonarHost;
 let sdCoverageAuthUrl;
 let sonarEnterprise;
+let sonarGitAppName;
 
 /**
  * Create a project in sonar
@@ -64,6 +66,39 @@ function createUser(username, password) {
         }
 
         throw new Error(`Failed to create user ${username}: ${err.message}`);
+    });
+}
+
+/**
+ * Configure Git App in SonarQube
+ * @param  {String} projectKey  Sonar project key
+ * @param  {String} projectName Sonar project name
+ * @return {Promise}            Nothing if Git App configured successfully
+ */
+function configureGitApp(projectKey, projectName) {
+    const gitApp = sonarGitAppName;
+    const gitAppEncoded = encodeURIComponent(gitApp);
+    const componentId = encodeURIComponent(projectKey);
+    // eslint-disable-next-line max-len
+    const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true`;
+
+    if (!sonarEnterprise || !projectName) {
+        return Promise.resolve();
+    }
+
+    return request({
+        json: true,
+        method: 'POST',
+        uri: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+        auth: {
+            username: adminToken
+        }
+    }).catch((err) => {
+        // if cannot configure app, do not throw err
+        // eslint-disable-next-line max-len
+        logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${err.message}`);
+
+        return Promise.resolve();
     });
 }
 
@@ -272,13 +307,15 @@ class CoverageSonar extends CoverageBase {
             sdUiUrl: joi.string().uri().required(),
             sonarHost: joi.string().uri().required(),
             adminToken: joi.string().required(),
-            sonarEnterprise: joi.boolean().default(false)
+            sonarEnterprise: joi.boolean().default(false),
+            sonarGitAppName: joi.string().default(DEFAULT_GIT_APP_NAME)
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
         sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
         sonarHost = this.config.sonarHost;
         sonarEnterprise = this.config.sonarEnterprise;
+        sonarGitAppName = this.config.sonarGitAppName;
 
         this.uploadCommands = COMMANDS
             .replace('$SD_SONAR_HOST', sonarHost)
@@ -300,11 +337,11 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ scope, username, projectKey, buildCredentials }) {
+    _getAccessToken({ scope, username, projectKey, projectName, buildCredentials }) {
         const { jobId, pipelineId, prParentJobId } = buildCredentials;
-        let projectData = { username, projectKey };
+        let projectData = { username, projectKey, projectName };
 
-        if (!username || !projectKey) {
+        if (!username || !projectKey || !projectName) {
             projectData = getProjectData({
                 enterpriseEnabled: sonarEnterprise,
                 jobId,
@@ -318,6 +355,7 @@ class CoverageSonar extends CoverageBase {
         const password = uuidv4();
 
         return createProject(projectData.projectKey)
+            .then(() => configureGitApp(projectData.projectKey, projectData.projectName))
             .then(() => createUser(projectData.username, password))
             .then(() => grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => generateToken(projectData.username))
@@ -357,10 +395,11 @@ class CoverageSonar extends CoverageBase {
             prParentJobId,
             prNum
         });
+
         const infoObject = {
             envVars: {
                 // eslint-disable-next-line max-len
-                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&username=${username}&scope=${projectScope}`,
+                SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&projectName=${projectName}&username=${username}&scope=${projectScope}`,
                 SD_SONAR_HOST: sonarHost,
                 SD_SONAR_ENTERPRISE: sonarEnterprise,
                 SD_SONAR_PROJECT_KEY: projectKey,
