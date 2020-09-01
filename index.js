@@ -12,11 +12,13 @@ const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
 
 const COMMANDS = fs.readFileSync(path.join(__dirname, 'commands.txt'), 'utf8').trim();
+const DEFAULT_GIT_APP_NAME = 'Screwdriver Sonar PR Checks';
 
 let adminToken;
 let sonarHost;
 let sdCoverageAuthUrl;
 let sonarEnterprise;
+let sonarGitAppName;
 
 /**
  * Create a project in sonar
@@ -74,7 +76,7 @@ function createUser(username, password) {
  * @return {Promise}            Nothing if Git App configured successfully
  */
 function configureGitApp(projectKey, projectName) {
-    const gitApp = 'Screwdriver Sonar PR Checks';
+    const gitApp = sonarGitAppName;
     const gitAppEncoded = encodeURIComponent(gitApp);
     const componentId = encodeURIComponent(projectKey);
     // eslint-disable-next-line max-len
@@ -305,13 +307,15 @@ class CoverageSonar extends CoverageBase {
             sdUiUrl: joi.string().uri().required(),
             sonarHost: joi.string().uri().required(),
             adminToken: joi.string().required(),
-            sonarEnterprise: joi.boolean().default(false)
+            sonarEnterprise: joi.boolean().default(false),
+            sonarGitAppName: joi.string().default(DEFAULT_GIT_APP_NAME)
         }).unknown(true), 'Invalid config for sonar coverage plugin');
 
         sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
         sonarHost = this.config.sonarHost;
         sonarEnterprise = this.config.sonarEnterprise;
+        sonarGitAppName = this.config.sonarGitAppName;
 
         this.uploadCommands = COMMANDS
             .replace('$SD_SONAR_HOST', sonarHost)

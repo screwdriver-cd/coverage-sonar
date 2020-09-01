@@ -30,14 +30,16 @@ describe('index test', () => {
             sdApiUrl: 'https://api.screwdriver.cd',
             sdUiUrl: 'https://cd.screwdriver.cd',
             sonarHost: 'https://sonar.screwdriver.cd',
-            adminToken: 'faketoken'
+            adminToken: 'faketoken',
+            sonarGitAppName: 'Screwdriver Sonar PR Checks'
         };
         enterpriseConfig = {
             sdApiUrl: 'https://api.screwdriver.cd',
             sdUiUrl: 'https://cd.screwdriver.cd',
             sonarHost: 'https://sonar.screwdriver.cd',
             adminToken: 'faketoken',
-            sonarEnterprise: true
+            sonarEnterprise: true,
+            sonarGitAppName: 'Screwdriver Sonar PR Checks'
         };
         coverageObject = {
             paging: {
