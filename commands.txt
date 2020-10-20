@@ -7,7 +7,7 @@ VERSION=`cat sonar-project.properties | awk -F= '/sonar.projectVersion=/{print $
 PROJECT_VERSION=${VERSION:='not provided'}
 SONAR_OPTIONS=`eval echo "$SD_SONAR_OPTS"`
 if echo $SCM_URL | grep git@ > /dev/null 2>&1; then export SONAR_SCM_URL=`echo $SCM_URL | sed -e 's/:/\//g' | sed -e 's/git@/https:\/\//g'`; else export SONAR_SCM_URL=${SCM_URL}; fi
-SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=$SD_SONAR_PROJECT_KEY" "-Dsonar.projectName=$SD_SONAR_PROJECT_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SONAR_SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" $SONAR_OPTIONS'
+SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=$SD_SONAR_PROJECT_KEY" "-Dsonar.projectName=$SD_SONAR_PROJECT_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SONAR_SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" "-Dsonar.scm.revision=$SD_BUILD_SHA" $SONAR_OPTIONS'
 SCANNER_PATH="/opt/sd/sonar-scanner/bin/sonar-scanner"
 if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
 if [ `uname` = 'Darwin' ]; then TARGET_OS='macosx'; else TARGET_OS='linux'; fi
