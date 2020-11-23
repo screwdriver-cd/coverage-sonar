@@ -9,6 +9,7 @@ jobs:
         steps:
             - install: npm install
             - test: npm test
+            - cat-lcov: cat artifacts/coverage/lcov.info
 
     publish:
         requires: main
