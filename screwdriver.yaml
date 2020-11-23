@@ -10,7 +10,7 @@ jobs:
             - install: npm install
             - test: npm test
             - cat-lcov: cat artifacts/coverage/lcov.info
-            - cat-lcov: pwd
+            - pwd: pwd
 
     publish:
         requires: main
