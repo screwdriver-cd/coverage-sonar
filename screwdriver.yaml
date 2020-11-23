@@ -11,6 +11,7 @@ jobs:
             - test: npm test
             - cat-lcov: cat artifacts/coverage/lcov.info
             - pwd: pwd
+            - dir: cat $SD_SOURCE_DIR
 
     publish:
         requires: main
