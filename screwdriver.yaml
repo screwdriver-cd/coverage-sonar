@@ -4,11 +4,12 @@ shared:
 jobs:
     main:
         environment:
-            SD_SONAR_OPTS: "-Dsonar.sources=index.js -Dsonar.javascript.lcov.reportPath=./artifact/coverage/lcov.info"
+            SD_SONAR_OPTS: "-Dsonar.sources=index.js -Dsonar.javascript.lcov.reportPaths=${SD_ARTIFACTS_DIR}/coverage/lcov.info"
         requires: [~pr, ~commit]
         steps:
             - install: npm install
             - test: npm test
+            - cp-coverage-to-artifacts: cp -r artifacts/coverage $SD_ARTIFACTS_DIR
 
     publish:
         requires: main
