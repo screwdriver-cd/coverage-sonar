@@ -9,7 +9,7 @@ jobs:
         steps:
             - install: npm install
             - test: npm test
-
+            - cat: cat ${SD_SOURCE_DIR}/artifacts/coverage/lcov.info
     publish:
         requires: main
         template: screwdriver-cd/semantic-release
