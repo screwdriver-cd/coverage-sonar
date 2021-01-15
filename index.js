@@ -89,7 +89,6 @@ function configureGitApp(projectKey, projectName) {
             username: adminToken
         }
     }).catch(() => {
-        console.log('in catch!!!');
         // if binding does not exist, add it
         logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
 
