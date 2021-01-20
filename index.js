@@ -79,26 +79,40 @@ function configureGitApp(projectKey, projectName) {
     const gitApp = sonarGitAppName;
     const gitAppEncoded = encodeURIComponent(gitApp);
     const componentId = encodeURIComponent(projectKey);
-    // eslint-disable-next-line max-len
-    const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true`;
 
-    if (!sonarEnterprise || !projectName) {
-        return Promise.resolve();
-    }
-
+    // Check if binding exists
     return request({
         json: true,
-        method: 'POST',
-        uri: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+        method: 'GET',
+        uri: `${sonarHost}/api/alm_settings/get_binding?project=${componentId}`,
         auth: {
             username: adminToken
         }
-    }).catch((err) => {
-        // if cannot configure app, do not throw err
-        // eslint-disable-next-line max-len
-        logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${err.message}`);
+    }).catch(() => {
+        // if binding does not exist, add it
+        logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
 
-        return Promise.resolve();
+        if (!sonarEnterprise || !projectName) {
+            return Promise.resolve();
+        }
+
+        // eslint-disable-next-line max-len
+        const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true`;
+
+        return request({
+            json: true,
+            method: 'POST',
+            uri: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+            auth: {
+                username: adminToken
+            }
+        }).catch((error) => {
+            // if cannot configure app, do not throw err
+            // eslint-disable-next-line max-len
+            logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
+
+            return Promise.resolve();
+        });
     });
 }
 
@@ -332,21 +346,27 @@ class CoverageSonar extends CoverageBase {
      * @param {Object} config
      * @param {String} [config.scope]           Coverage scope
      * @param {Object} config.buildCredentials  Information stored in a build JWT
-     * @param {String} config.projectKey        Sonar project key
-     * @param {String} config.username          Sonar username
+     * @param {String} [config.jobName]         Screwdriver job name
+     * @param {String} config.pipelineName      Screwdriver pipeline name
+     * @param {String} [config.projectKey]      Sonar project key
+     * @param {String} [config.projectName]     Sonar project name
+     * @param {String} [config.username]        Sonar username
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ scope, username, projectKey, projectName, buildCredentials }) {
+    _getAccessToken({ scope, username, projectKey, projectName, jobName, pipelineName,
+        buildCredentials }) {
         const { jobId, pipelineId, prParentJobId } = buildCredentials;
         let projectData = { username, projectKey, projectName };
 
-        if (!username || !projectKey || !projectName) {
+        if (!username || !projectKey || !projectName || projectName.includes('undefined')) {
             projectData = getProjectData({
                 enterpriseEnabled: sonarEnterprise,
                 jobId,
+                jobName,
                 prParentJobId,
                 pipelineId,
+                pipelineName,
                 scope,
                 projectKey
             });
@@ -432,12 +452,6 @@ class CoverageSonar extends CoverageBase {
     /**
      * Get shell command to upload coverage to server
      * @method _getUploadCoverageCmd
-     * @param  {Object}  config
-     * @param  {Object}  [config.scope]        Coverage scope
-     * @param  {String}  config.jobId          Screwdriver job ID
-     * @param  {String}  config.jobName        Screwdriver job name
-     * @param  {String}  config.pipelineId     Screwdriver pipeline ID
-     * @param  {String}  config.pipelineName   Screwdriver pipeline name
      * @return {Promise}     Shell commands to upload coverage
      */
     _getUploadCoverageCmd() {

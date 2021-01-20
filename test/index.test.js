@@ -598,14 +598,15 @@ describe('index test', () => {
         const gitAppEncoded = 'Screwdriver%20Sonar%20PR%20Checks';
 
         beforeEach(() => {
-            requestMock.onCall(3).resolves({ token: 'accesstoken' });
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(4).resolves({ token: 'accesstoken' });
         });
 
         it('gets an access token successfully', () => {
             const projectKey = 'job:1';
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
-                assert.callCount(requestMock, 4);
+                assert.callCount(requestMock, 5);
                 assert.call(requestMock, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}` }));
@@ -619,18 +620,18 @@ describe('index test', () => {
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(4).resolves({ token: 'accesstoken' });
+            requestMock.onCall(5).resolves({ token: 'accesstoken' });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin.getAccessToken({ buildCredentials, projectKey, username, projectName }).then((result) => {
-                assert.callCount(requestMock, 5);
+                assert.callCount(requestMock, 6);
                 assert.call(requestMock.firstCall, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}` }));
-                assert.calledWith(requestMock.secondCall, sinon.match({ uri:
+                assert.calledWith(requestMock.thirdCall, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true` }));
-                assert.call(requestMock.thirdCall, sinon.match({ uri:
+                assert.call(requestMock.fourthCall, sinon.match({ uri:
                     // eslint-disable-next-line max-len
                     `https://sonar.screwdriver.cd/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}` }));
                 assert.strictEqual(result, 'accesstoken');
@@ -642,23 +643,23 @@ describe('index test', () => {
                 statusCode: 400,
                 message: 'Project already exists.'
             });
-            requestMock.onCall(3).resolves({ token: 'accesstoken' });
+            requestMock.onCall(4).resolves({ token: 'accesstoken' });
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
-                assert.callCount(requestMock, 4);
+                assert.callCount(requestMock, 5);
                 assert.strictEqual(result, 'accesstoken');
             });
         });
 
         it('gets an access token successfully with existing user', () => {
-            requestMock.onCall(1).rejects({
+            requestMock.onCall(2).rejects({
                 statusCode: 400,
                 message: 'user already exists.'
             });
-            requestMock.onCall(3).resolves({ token: 'accesstoken' });
+            requestMock.onCall(4).resolves({ token: 'accesstoken' });
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
-                assert.callCount(requestMock, 4);
+                assert.callCount(requestMock, 5);
                 assert.strictEqual(result, 'accesstoken');
             });
         });
@@ -676,10 +677,28 @@ describe('index test', () => {
         });
 
         it('does not throw if failed to configure Git App', () => {
-            requestMock.onCall(1).rejects({
+            requestMock.onCall(2).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
+
+            const projectKey = 'pipeline:123';
+            const projectName = 'd2lam/mytest';
+            const username = 'user-pipeline-123';
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(5).resolves({ token: 'accesstoken' });
+
+            // eslint-disable-next-line max-len
+            return enterpriseSonarPlugin.getAccessToken({ buildCredentials, projectKey, username, projectName }).then((result) => {
+                assert.callCount(requestMock, 6);
+                assert.callCount(loggerMock.error, 1);
+                assert.strictEqual(result, 'accesstoken');
+            });
+        });
+
+        it('does not configure Git App if binding already exists', () => {
+            requestMock.onCall(1).resolves({});
 
             const projectKey = 'pipeline:123';
             const projectName = 'd2lam/mytest';
@@ -691,13 +710,13 @@ describe('index test', () => {
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin.getAccessToken({ buildCredentials, projectKey, username, projectName }).then((result) => {
                 assert.callCount(requestMock, 5);
-                assert.callCount(loggerMock.error, 1);
+                assert.callCount(loggerMock.error, 0);
                 assert.strictEqual(result, 'accesstoken');
             });
         });
 
         it('throws err if failed to create/locate user', () => {
-            requestMock.onCall(1).rejects({
+            requestMock.onCall(2).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
@@ -709,7 +728,7 @@ describe('index test', () => {
         });
 
         it('throws err if failed to grant user permission', () => {
-            requestMock.onCall(2).rejects({
+            requestMock.onCall(3).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
@@ -721,7 +740,7 @@ describe('index test', () => {
         });
 
         it('it throws err if failed to generate user token', () => {
-            requestMock.onCall(3).rejects({
+            requestMock.onCall(4).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
