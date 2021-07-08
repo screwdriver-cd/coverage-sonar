@@ -30,24 +30,24 @@
     "Tiffany Kyi <tiffanykyi@gmail.com>"
   ],
   "devDependencies": {
-    "chai": "^3.5.0",
-    "eslint": "^4.3.0",
-    "eslint-config-screwdriver": "^3.0.0",
+    "chai": "^4.2.0",
+    "eslint": "^7.5.0",
+    "eslint-config-screwdriver": "^5.0.1",
     "mocha": "^8.3.2",
     "mocha-multi-reporters": "^1.5.1",
     "mocha-sonarqube-reporter": "^1.0.2",
     "mockery": "^2.1.0",
     "nyc": "^15.0.0",
-    "sinon": "^5.1.1"
+    "sinon": "^9.0.0"
   },
   "dependencies": {
-    "@hapi/hoek": "^9.0.4",
-    "joi": "^17.2.1",
-    "request": "^2.87.0",
-    "request-promise-native": "^1.0.5",
-    "screwdriver-coverage-base": "^2.0.0",
-    "screwdriver-logger": "^1.0.1",
-    "uuid": "^3.2.1"
+    "@hapi/hoek": "^9.2.0",
+    "joi": "^17.4.0",
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9",
+    "screwdriver-coverage-base": "^2.0.2",
+    "screwdriver-logger": "^1.0.2",
+    "uuid": "^3.4.0"
   },
   "release": {
     "debug": false,
