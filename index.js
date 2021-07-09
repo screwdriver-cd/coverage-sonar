@@ -35,7 +35,7 @@ function createProject(projectKey) {
         auth: {
             username: adminToken
         }
-    }).catch((err) => {
+    }).catch(err => {
         if (err.statusCode === 400 && err.message.includes('already exists')) {
             return {};
         }
@@ -60,7 +60,7 @@ function createUser(username, password) {
         auth: {
             username: adminToken
         }
-    }).catch((err) => {
+    }).catch(err => {
         if (err.statusCode === 400 && err.message.includes('already exists')) {
             return {};
         }
@@ -106,7 +106,7 @@ function configureGitApp(projectKey, projectName) {
             auth: {
                 username: adminToken
             }
-        }).catch((error) => {
+        }).catch(error => {
             // if cannot configure app, do not throw err
             // eslint-disable-next-line max-len
             logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
@@ -133,7 +133,7 @@ function grantUserPermission(username, projectKey) {
         auth: {
             username: adminToken
         }
-    }).catch((err) => {
+    }).catch(err => {
         throw new Error(`Failed to grant user ${username} permission: ${err.message}`);
     });
 }
@@ -154,7 +154,7 @@ function generateToken(username) {
         auth: {
             username: adminToken
         }
-    }).catch((err) => {
+    }).catch(err => {
         throw new Error(`Failed to generate user ${username} token: ${err.message}`);
     });
 }
@@ -193,11 +193,11 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
             username: adminToken
         }
     })
-        .then((result) => {
+        .then(result => {
             const measures = {};
 
             // measures in result is an array, covert it to an object with metric name as key
-            (hoek.reach(result, 'measures') || []).forEach((measure) => {
+            (hoek.reach(result, 'measures') || []).forEach(measure => {
                 measures[measure.metric] = measure;
             });
 
@@ -219,12 +219,14 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
 
             return metrics;
         })
-        .catch((err) => {
+        .catch(err => {
             // if there is no coverage measurement target, 404 and 'Component key not found' are returned and this is not an error
             if (err.statusCode !== 404 || !/Component key '.*' not found/.test(err.message)) {
                 // if cannot get coverage, do not throw err
                 // eslint-disable-next-line max-len
-                logger.error(`Failed to get coverage and tests percentage for Sonar project ${projectKey}: ${err.message}`);
+                logger.error(
+                    `Failed to get coverage and tests percentage for Sonar project ${projectKey}: ${err.message}`
+                );
             }
 
             return {
@@ -251,16 +253,24 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
  * @param  {String}     [config.prParentJobId]      Screwdriver PR parent job ID
  * @return {Object}                                 Sonar project key, project name, and username
  */
-function getProjectData({ scope, enterpriseEnabled, jobId: buildJobId,
-    jobName: buildJobName, pipelineId, pipelineName, projectKey, prParentJobId, prNum }) {
+function getProjectData({
+    scope,
+    enterpriseEnabled,
+    jobId: buildJobId,
+    jobName: buildJobName,
+    pipelineId,
+    pipelineName,
+    projectKey,
+    prParentJobId,
+    prNum
+}) {
     let jobId = buildJobId;
     let jobName = buildJobName;
 
     // Determine scope based on projectKey
     if (projectKey) {
         const [projectScope, id] = projectKey.split(':');
-        const projectName = projectScope === 'pipeline' ?
-            pipelineName : `${pipelineName}:${jobName}`;
+        const projectName = projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`;
         const username = `user-${projectScope}-${id}`;
 
         return {
@@ -272,7 +282,7 @@ function getProjectData({ scope, enterpriseEnabled, jobId: buildJobId,
     }
 
     // Use user-configured scope; otherwise figure out default scope: pipeline scope for enterprise edition, job scope for everything else
-    const userScope = (scope && scope !== 'undefined') ? scope : undefined;
+    const userScope = scope && scope !== 'undefined' ? scope : undefined;
     const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
 
     if (coverageScope === 'pipeline') {
@@ -316,14 +326,30 @@ class CoverageSonar extends CoverageBase {
     constructor(config) {
         super();
 
-        this.config = joi.attempt(config, joi.object().keys({
-            sdApiUrl: joi.string().uri().required(),
-            sdUiUrl: joi.string().uri().required(),
-            sonarHost: joi.string().uri().required(),
-            adminToken: joi.string().required(),
-            sonarEnterprise: joi.boolean().default(false),
-            sonarGitAppName: joi.string().default(DEFAULT_GIT_APP_NAME)
-        }).unknown(true), 'Invalid config for sonar coverage plugin');
+        this.config = joi.attempt(
+            config,
+            joi
+                .object()
+                .keys({
+                    sdApiUrl: joi
+                        .string()
+                        .uri()
+                        .required(),
+                    sdUiUrl: joi
+                        .string()
+                        .uri()
+                        .required(),
+                    sonarHost: joi
+                        .string()
+                        .uri()
+                        .required(),
+                    adminToken: joi.string().required(),
+                    sonarEnterprise: joi.boolean().default(false),
+                    sonarGitAppName: joi.string().default(DEFAULT_GIT_APP_NAME)
+                })
+                .unknown(true),
+            'Invalid config for sonar coverage plugin'
+        );
 
         sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
         adminToken = this.config.adminToken;
@@ -331,8 +357,7 @@ class CoverageSonar extends CoverageBase {
         sonarEnterprise = this.config.sonarEnterprise;
         sonarGitAppName = this.config.sonarGitAppName;
 
-        this.uploadCommands = COMMANDS
-            .replace('$SD_SONAR_HOST', sonarHost)
+        this.uploadCommands = COMMANDS.replace('$SD_SONAR_HOST', sonarHost)
             .replace('$SD_UI_URL', this.config.sdUiUrl)
             .replace('$SD_SONAR_ENTERPRISE', sonarEnterprise)
             .split('\n');
@@ -354,8 +379,7 @@ class CoverageSonar extends CoverageBase {
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
-    _getAccessToken({ scope, username, projectKey, projectName, jobName, pipelineName,
-        buildCredentials }) {
+    _getAccessToken({ scope, username, projectKey, projectName, jobName, pipelineName, buildCredentials }) {
         const { jobId, pipelineId, prParentJobId } = buildCredentials;
         let projectData = { username, projectKey, projectName };
 
@@ -402,8 +426,18 @@ class CoverageSonar extends CoverageBase {
      *                                              - project url
      *                                              - Sonar env vars
      */
-    _getInfo({ scope, jobId, jobName, startTime, endTime, pipelineId,
-        pipelineName, prNum, projectKey: coverageProjectKey, prParentJobId }) {
+    _getInfo({
+        scope,
+        jobId,
+        jobName,
+        startTime,
+        endTime,
+        pipelineId,
+        pipelineName,
+        prNum,
+        projectKey: coverageProjectKey,
+        prParentJobId
+    }) {
         const { projectScope, projectKey, projectName, username } = getProjectData({
             enterpriseEnabled: sonarEnterprise,
             jobId,
@@ -429,8 +463,8 @@ class CoverageSonar extends CoverageBase {
 
         // Only get coverage percentage if the steps are finished
         if (projectKey && startTime && endTime) {
-            return getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise })
-                .then(({ coverage, tests }) => {
+            return getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise }).then(
+                ({ coverage, tests }) => {
                     const componentId = encodeURIComponent(projectKey);
                     let projectUrl = `${this.config.sonarHost}/dashboard?id=${componentId}`;
 
@@ -443,7 +477,8 @@ class CoverageSonar extends CoverageBase {
                     infoObject.projectUrl = projectUrl;
 
                     return Promise.resolve(infoObject);
-                });
+                }
+            );
         }
 
         return Promise.resolve(infoObject);
