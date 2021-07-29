@@ -191,7 +191,7 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
             const measures = {};
 
             // measures in result is an array, covert it to an object with metric name as key
-            (hoek.reach(result, 'measures') || []).forEach(measure => {
+            (hoek.reach(result, 'body.measures') || []).forEach(measure => {
                 measures[measure.metric] = measure;
             });
 

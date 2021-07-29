@@ -42,49 +42,51 @@ describe('index test', () => {
             sonarGitAppName: 'Screwdriver Sonar PR Checks'
         };
         coverageObject = {
-            paging: {
-                pageIndex: 1,
-                pageSize: 1,
-                total: 4
-            },
-            measures: [
-                {
-                    metric: 'tests',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '10.0'
-                        }
-                    ]
+            body: {
+                paging: {
+                    pageIndex: 1,
+                    pageSize: 1,
+                    total: 4
                 },
-                {
-                    metric: 'test_errors',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '2.0'
-                        }
-                    ]
-                },
-                {
-                    metric: 'test_failures',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '1.0'
-                        }
-                    ]
-                },
-                {
-                    metric: 'coverage',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '98.8'
-                        }
-                    ]
-                }
-            ]
+                measures: [
+                    {
+                        metric: 'tests',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '10.0'
+                            }
+                        ]
+                    },
+                    {
+                        metric: 'test_errors',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '2.0'
+                            }
+                        ]
+                    },
+                    {
+                        metric: 'test_failures',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '1.0'
+                            }
+                        ]
+                    },
+                    {
+                        metric: 'coverage',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '98.8'
+                            }
+                        ]
+                    }
+                ]
+            }
         };
         requestMock = sinon.stub().resolves(null);
         mockery.registerMock('screwdriver-request', requestMock);
@@ -549,7 +551,7 @@ describe('index test', () => {
         it('return N/A for tests if it tests metric does not exist', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
-            delete obj.measures[0];
+            delete obj.body.measures[0];
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin
@@ -580,7 +582,7 @@ describe('index test', () => {
         it('return N/A for tests if it tests metric history value is not a number', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
-            obj.measures[0].history[0].value = 'unknown';
+            obj.body.measures[0].history[0].value = 'unknown';
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin
@@ -611,7 +613,7 @@ describe('index test', () => {
         it('computes correct result if tests_errors metric is missing', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
-            delete obj.measures[1].history[0].value;
+            delete obj.body.measures[1].history[0].value;
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin
