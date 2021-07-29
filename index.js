@@ -6,7 +6,7 @@ const fs = require('fs');
 const joi = require('joi');
 const hoek = require('@hapi/hoek');
 const path = require('path');
-const request = require('request-promise-native');
+const request = require('screwdriver-request');
 const uuidv4 = require('uuid/v4');
 const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
@@ -28,12 +28,11 @@ let sonarGitAppName;
  */
 function createProject(projectKey) {
     return request({
-        json: true,
         method: 'POST',
-        // eslint-disable-next-line max-len
-        uri: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}`,
-        auth: {
-            username: adminToken
+        url: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}`,
+        username: adminToken,
+        context: {
+            caller: 'createProject'
         }
     }).catch(err => {
         if (err.statusCode === 400 && err.message.includes('already exists')) {
@@ -53,12 +52,11 @@ function createProject(projectKey) {
  */
 function createUser(username, password) {
     return request({
-        json: true,
         method: 'POST',
-        // eslint-disable-next-line max-len
-        uri: `${sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
-        auth: {
-            username: adminToken
+        url: `${sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
+        username: adminToken,
+        context: {
+            caller: 'createUser'
         }
     }).catch(err => {
         if (err.statusCode === 400 && err.message.includes('already exists')) {
@@ -82,11 +80,11 @@ function configureGitApp(projectKey, projectName) {
 
     // Check if binding exists
     return request({
-        json: true,
         method: 'GET',
-        uri: `${sonarHost}/api/alm_settings/get_binding?project=${componentId}`,
-        auth: {
-            username: adminToken
+        url: `${sonarHost}/api/alm_settings/get_binding?project=${componentId}`,
+        username: adminToken,
+        context: {
+            caller: 'configureGitApp'
         }
     }).catch(() => {
         // if binding does not exist, add it
@@ -96,19 +94,17 @@ function configureGitApp(projectKey, projectName) {
             return Promise.resolve();
         }
 
-        // eslint-disable-next-line max-len
         const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true`;
 
         return request({
-            json: true,
             method: 'POST',
-            uri: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
-            auth: {
-                username: adminToken
+            url: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+            username: adminToken,
+            context: {
+                caller: 'configureGitApp'
             }
         }).catch(error => {
             // if cannot configure app, do not throw err
-            // eslint-disable-next-line max-len
             logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
 
             return Promise.resolve();
@@ -126,12 +122,11 @@ function configureGitApp(projectKey, projectName) {
 function grantUserPermission(username, projectKey) {
     // Always return 204 even with duplicate calls
     return request({
-        json: true,
         method: 'POST',
-        // eslint-disable-next-line
-        uri: `${sonarHost}/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`,
-        auth: {
-            username: adminToken
+        url: `${sonarHost}/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`,
+        username: adminToken,
+        context: {
+            caller: 'grantUserPermission'
         }
     }).catch(err => {
         throw new Error(`Failed to grant user ${username} permission: ${err.message}`);
@@ -148,11 +143,11 @@ function generateToken(username) {
     const tokenName = uuidv4();
 
     return request({
-        json: true,
         method: 'POST',
-        uri: `${sonarHost}/api/user_tokens/generate?login=${username}&name=${tokenName}`,
-        auth: {
-            username: adminToken
+        url: `${sonarHost}/api/user_tokens/generate?login=${username}&name=${tokenName}`,
+        username: adminToken,
+        context: {
+            caller: 'generateToken'
         }
     }).catch(err => {
         throw new Error(`Failed to generate user ${username} token: ${err.message}`);
@@ -178,7 +173,6 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
     const parsedEndTime = endTime.replace(/\.(.*)/, timezoneOffset);
     const from = encodeURIComponent(parsedStartTime);
     const to = encodeURIComponent(parsedEndTime);
-    // eslint-disable-next-line max-len
     let coverageUrl = `${sonarHost}/api/measures/search_history?component=${componentId}&metrics=tests,test_errors,test_failures,coverage&from=${from}&to=${to}&ps=1`;
 
     if (enterpriseEnabled && prNum) {
@@ -186,11 +180,11 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
     }
 
     return request({
-        json: true,
         method: 'GET',
-        uri: coverageUrl,
-        auth: {
-            username: adminToken
+        url: coverageUrl,
+        username: adminToken,
+        context: {
+            caller: 'getMetrics'
         }
     })
         .then(result => {
@@ -223,7 +217,6 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
             // if there is no coverage measurement target, 404 and 'Component key not found' are returned and this is not an error
             if (err.statusCode !== 404 || !/Component key '.*' not found/.test(err.message)) {
                 // if cannot get coverage, do not throw err
-                // eslint-disable-next-line max-len
                 logger.error(
                     `Failed to get coverage and tests percentage for Sonar project ${projectKey}: ${err.message}`
                 );
@@ -452,7 +445,6 @@ class CoverageSonar extends CoverageBase {
 
         const infoObject = {
             envVars: {
-                // eslint-disable-next-line max-len
                 SD_SONAR_AUTH_URL: `${sdCoverageAuthUrl}?projectKey=${projectKey}&projectName=${projectName}&username=${username}&scope=${projectScope}`,
                 SD_SONAR_HOST: sonarHost,
                 SD_SONAR_ENTERPRISE: sonarEnterprise,
