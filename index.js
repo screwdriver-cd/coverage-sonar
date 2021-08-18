@@ -30,10 +30,7 @@ function createProject(projectKey) {
     return request({
         method: 'POST',
         url: `${sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}`,
-        username: adminToken,
-        context: {
-            caller: 'createProject'
-        }
+        username: adminToken
     }).catch(err => {
         if (err.statusCode === 400 && err.message.includes('already exists')) {
             return {};
@@ -54,10 +51,7 @@ function createUser(username, password) {
     return request({
         method: 'POST',
         url: `${sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
-        username: adminToken,
-        context: {
-            caller: 'createUser'
-        }
+        username: adminToken
     }).catch(err => {
         if (err.statusCode === 400 && err.message.includes('already exists')) {
             return {};
@@ -82,10 +76,7 @@ function configureGitApp(projectKey, projectName) {
     return request({
         method: 'GET',
         url: `${sonarHost}/api/alm_settings/get_binding?project=${componentId}`,
-        username: adminToken,
-        context: {
-            caller: 'configureGitApp'
-        }
+        username: adminToken
     }).catch(() => {
         // if binding does not exist, add it
         logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
@@ -99,10 +90,7 @@ function configureGitApp(projectKey, projectName) {
         return request({
             method: 'POST',
             url: `${sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
-            username: adminToken,
-            context: {
-                caller: 'configureGitApp'
-            }
+            username: adminToken
         }).catch(error => {
             // if cannot configure app, do not throw err
             logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
@@ -124,10 +112,7 @@ function grantUserPermission(username, projectKey) {
     return request({
         method: 'POST',
         url: `${sonarHost}/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`,
-        username: adminToken,
-        context: {
-            caller: 'grantUserPermission'
-        }
+        username: adminToken
     }).catch(err => {
         throw new Error(`Failed to grant user ${username} permission: ${err.message}`);
     });
@@ -145,10 +130,7 @@ function generateToken(username) {
     return request({
         method: 'POST',
         url: `${sonarHost}/api/user_tokens/generate?login=${username}&name=${tokenName}`,
-        username: adminToken,
-        context: {
-            caller: 'generateToken'
-        }
+        username: adminToken
     }).catch(err => {
         throw new Error(`Failed to generate user ${username} token: ${err.message}`);
     });
@@ -182,10 +164,7 @@ function getMetrics({ projectKey, startTime, endTime, prNum, sonarEnterprise: en
     return request({
         method: 'GET',
         url: coverageUrl,
-        username: adminToken,
-        context: {
-            caller: 'getMetrics'
-        }
+        username: adminToken
     })
         .then(result => {
             const measures = {};
