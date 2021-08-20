@@ -31,7 +31,7 @@
   ],
   "devDependencies": {
     "chai": "^4.2.0",
-    "eslint": "^7.5.0",
+    "eslint": "^7.31.0",
     "eslint-config-screwdriver": "^5.0.1",
     "mocha": "^8.3.2",
     "mocha-multi-reporters": "^1.5.1",
@@ -42,11 +42,10 @@
   },
   "dependencies": {
     "@hapi/hoek": "^9.2.0",
-    "joi": "^17.4.0",
-    "request": "^2.88.2",
-    "request-promise-native": "^1.0.9",
-    "screwdriver-coverage-base": "^2.0.2",
-    "screwdriver-logger": "^1.0.2",
+    "joi": "^17.4.1",
+    "screwdriver-coverage-base": "^2.1.0",
+    "screwdriver-logger": "^1.1.0",
+    "screwdriver-request": "^1.0.1",
     "uuid": "^3.4.0"
   },
   "release": {

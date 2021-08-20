@@ -42,52 +42,54 @@ describe('index test', () => {
             sonarGitAppName: 'Screwdriver Sonar PR Checks'
         };
         coverageObject = {
-            paging: {
-                pageIndex: 1,
-                pageSize: 1,
-                total: 4
-            },
-            measures: [
-                {
-                    metric: 'tests',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '10.0'
-                        }
-                    ]
+            body: {
+                paging: {
+                    pageIndex: 1,
+                    pageSize: 1,
+                    total: 4
                 },
-                {
-                    metric: 'test_errors',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '2.0'
-                        }
-                    ]
-                },
-                {
-                    metric: 'test_failures',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '1.0'
-                        }
-                    ]
-                },
-                {
-                    metric: 'coverage',
-                    history: [
-                        {
-                            date: '2018-05-08T00:09:53+0000',
-                            value: '98.8'
-                        }
-                    ]
-                }
-            ]
+                measures: [
+                    {
+                        metric: 'tests',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '10.0'
+                            }
+                        ]
+                    },
+                    {
+                        metric: 'test_errors',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '2.0'
+                            }
+                        ]
+                    },
+                    {
+                        metric: 'test_failures',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '1.0'
+                            }
+                        ]
+                    },
+                    {
+                        metric: 'coverage',
+                        history: [
+                            {
+                                date: '2018-05-08T00:09:53+0000',
+                                value: '98.8'
+                            }
+                        ]
+                    }
+                ]
+            }
         };
         requestMock = sinon.stub().resolves(null);
-        mockery.registerMock('request-promise-native', requestMock);
+        mockery.registerMock('screwdriver-request', requestMock);
 
         loggerMock = {
             info: sinon.stub(),
@@ -192,9 +194,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
                         })
                     );
                     assert.deepEqual(result, {
@@ -202,7 +202,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -228,9 +227,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
                         })
                     );
                     assert.deepEqual(result, {
@@ -238,7 +235,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&projectName=d2lam/mytest&username=user-pipeline-123&scope=pipeline`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -262,9 +258,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
                         })
                     );
                     assert.deepEqual(result, {
@@ -272,7 +266,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&projectName=d2lam/mytest&username=user-pipeline-123&scope=pipeline`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -301,9 +294,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
                         })
                     );
                     assert.deepEqual(result, {
@@ -311,7 +302,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&projectName=d2lam/mytest&username=user-pipeline-123&scope=pipeline`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: true,
@@ -342,9 +332,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
                         })
                     );
                     assert.deepEqual(result, {
@@ -352,7 +340,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&projectName=d2lam/mytest&username=user-pipeline-123&scope=pipeline`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: true,
@@ -383,9 +370,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=pipeline%3A123&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56`
                         })
                     );
                     assert.deepEqual(result, {
@@ -393,7 +378,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=pipeline%3A123&pullRequest=56`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=pipeline:123&projectName=d2lam/mytest&username=user-pipeline-123&scope=pipeline`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: true,
@@ -426,9 +410,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A456&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56`
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A456&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1&pullRequest=56`
                         })
                     );
                     assert.deepEqual(result, {
@@ -436,7 +418,6 @@ describe('index test', () => {
                         tests: '7/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A456&pullRequest=56`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:456&projectName=d2lam/mytest:main&username=user-job-456&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: true,
@@ -458,7 +439,6 @@ describe('index test', () => {
                 .then(result => {
                     assert.deepEqual(result, {
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -491,7 +471,6 @@ describe('index test', () => {
                         tests: 'N/A',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -525,7 +504,6 @@ describe('index test', () => {
                         tests: 'N/A',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -559,7 +537,6 @@ describe('index test', () => {
                         tests: 'N/A',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -574,7 +551,7 @@ describe('index test', () => {
         it('return N/A for tests if it tests metric does not exist', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
-            delete obj.measures[0];
+            delete obj.body.measures[0];
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin
@@ -592,7 +569,6 @@ describe('index test', () => {
                         tests: 'N/A',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -606,7 +582,7 @@ describe('index test', () => {
         it('return N/A for tests if it tests metric history value is not a number', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
-            obj.measures[0].history[0].value = 'unknown';
+            obj.body.measures[0].history[0].value = 'unknown';
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin
@@ -624,7 +600,6 @@ describe('index test', () => {
                         tests: 'N/A',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -638,7 +613,7 @@ describe('index test', () => {
         it('computes correct result if tests_errors metric is missing', () => {
             const obj = JSON.parse(JSON.stringify(coverageObject));
 
-            delete obj.measures[1].history[0].value;
+            delete obj.body.measures[1].history[0].value;
             requestMock.onCall(0).resolves(obj);
 
             return sonarPlugin
@@ -656,7 +631,6 @@ describe('index test', () => {
                         tests: '9/10',
                         projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
                         envVars: {
-                            // eslint-disable-next-line max-len
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: false,
@@ -685,9 +659,7 @@ describe('index test', () => {
                 assert.call(
                     requestMock,
                     sinon.match({
-                        uri:
-                            // eslint-disable-next-line max-len
-                            `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}`
+                        url: `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}`
                     })
                 );
                 assert.strictEqual(result, 'accesstoken');
@@ -702,7 +674,6 @@ describe('index test', () => {
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(5).resolves({ token: 'accesstoken' });
 
-            // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
                 .then(result => {
@@ -710,25 +681,19 @@ describe('index test', () => {
                     assert.call(
                         requestMock.firstCall,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}`
+                            url: `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}`
                         })
                     );
                     assert.calledWith(
                         requestMock.thirdCall,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true`
+                            url: `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true`
                         })
                     );
                     assert.call(
                         requestMock.fourthCall,
                         sinon.match({
-                            uri:
-                                // eslint-disable-next-line max-len
-                                `https://sonar.screwdriver.cd/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`
+                            url: `https://sonar.screwdriver.cd/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`
                         })
                     );
                     assert.strictEqual(result, 'accesstoken');
