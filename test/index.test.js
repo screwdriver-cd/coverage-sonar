@@ -648,7 +648,7 @@ describe('index test', () => {
 
         beforeEach(() => {
             requestMock.onCall(1).rejects();
-            requestMock.onCall(4).resolves({ token: 'accesstoken' });
+            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
         });
 
         it('gets an access token successfully', () => {
@@ -672,7 +672,7 @@ describe('index test', () => {
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(5).resolves({ token: 'accesstoken' });
+            requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } });
 
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
@@ -705,7 +705,7 @@ describe('index test', () => {
                 statusCode: 400,
                 message: 'Project already exists.'
             });
-            requestMock.onCall(4).resolves({ token: 'accesstoken' });
+            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
                 assert.callCount(requestMock, 5);
@@ -718,7 +718,7 @@ describe('index test', () => {
                 statusCode: 400,
                 message: 'user already exists.'
             });
-            requestMock.onCall(4).resolves({ token: 'accesstoken' });
+            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
                 assert.callCount(requestMock, 5);
@@ -753,7 +753,7 @@ describe('index test', () => {
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(5).resolves({ token: 'accesstoken' });
+            requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
@@ -773,7 +773,7 @@ describe('index test', () => {
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(4).resolves({ token: 'accesstoken' });
+            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
