@@ -375,7 +375,7 @@ class CoverageSonar extends CoverageBase {
             .then(() => createUser(projectData.username, password))
             .then(() => grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => generateToken(projectData.username))
-            .then(res => res.token);
+            .then(res => res.body.token);
     }
 
     /**
