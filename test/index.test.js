@@ -687,7 +687,7 @@ describe('index test', () => {
                     assert.calledWith(
                         requestMock.thirdCall,
                         sinon.match({
-                            url: `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true`
+                            url: `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`
                         })
                     );
                     assert.call(
