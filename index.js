@@ -85,7 +85,7 @@ function configureGitApp(projectKey, projectName) {
             return Promise.resolve();
         }
 
-        const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true`;
+        const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
 
         return request({
             method: 'POST',
