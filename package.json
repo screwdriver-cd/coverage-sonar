@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
-    "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --reporter mocha-multi-reporters --reporter-options configFile=./mocha.config.json --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true --color true",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --reporter mocha-multi-reporters --reporter-options configFile=./mocha.config.json --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true --color true"
   },
   "repository": {
     "type": "git",
@@ -49,9 +48,6 @@
     "uuid": "^3.4.0"
   },
   "release": {
-    "debug": false,
-    "verifyConditions": {
-      "path": "./node_modules/semantic-release/src/lib/plugin-noop.js"
-    }
+    "debug": false
   }
 }
