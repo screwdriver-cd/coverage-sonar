@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:screwdriver-cd/coverage-sonar.git"
+    "url": "git+https://github.com/screwdriver-cd/coverage-sonar.git"
   },
   "homepage": "https://github.com/screwdriver-cd/coverage-sonar",
   "bugs": "https://github.com/screwdriver-cd/screwdriver/issues",
