@@ -31,6 +31,7 @@ describe('index test', () => {
             sdUiUrl: 'https://cd.screwdriver.cd',
             sonarHost: 'https://sonar.screwdriver.cd',
             adminToken: 'faketoken',
+            sonarEnterprise: false,
             sonarGitAppName: 'Screwdriver Sonar PR Checks'
         };
         enterpriseConfig = {
