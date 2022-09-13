@@ -281,8 +281,7 @@ class CoverageSonar extends CoverageBase {
         pipelineId,
         pipelineName,
         projectKey,
-        prParentJobId,
-        prNum
+        prParentJobId
     }) {
         let jobId = buildJobId;
         let jobName = buildJobName;
@@ -315,12 +314,14 @@ class CoverageSonar extends CoverageBase {
         }
 
         // Use prParentJobId as ID for PRs
-        if (prNum && coverageScope === 'job' && enterpriseEnabled) {
+        if (coverageScope === 'job' && enterpriseEnabled) {
             const prRegex = /^PR-(\d+)(?::([\w-]+))?$/;
             const prNameMatch = jobName.match(prRegex);
 
-            jobId = prParentJobId;
-            jobName = prNameMatch && prNameMatch.length > 1 ? prNameMatch[2] : jobName;
+            if (prNameMatch && prNameMatch.length > 1) {
+                jobId = prParentJobId;
+                jobName = prNameMatch[2];
+            }
         }
 
         return {
@@ -412,8 +413,7 @@ class CoverageSonar extends CoverageBase {
             pipelineName,
             jobName,
             projectKey: coverageProjectKey,
-            prParentJobId,
-            prNum
+            prParentJobId
         });
 
         const infoObject = {
