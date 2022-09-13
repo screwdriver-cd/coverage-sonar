@@ -402,7 +402,7 @@ describe('index test', () => {
                     endTime,
                     pipelineId: 123,
                     prNum: 56,
-                    jobName: 'main',
+                    jobName: 'PR-56:main',
                     pipelineName: 'd2lam/mytest',
                     scope: 'job',
                     prParentJobId: 456
@@ -423,6 +423,45 @@ describe('index test', () => {
                             SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
                             SD_SONAR_ENTERPRISE: true,
                             SD_SONAR_PROJECT_KEY: 'job:456',
+                            SD_SONAR_PROJECT_NAME: projectName
+                        }
+                    });
+                    assert.callCount(requestMock, 1);
+                });
+        });
+
+        it('returns links for enterprise project with job scope annotation', () => {
+            requestMock.onCall(0).resolves(coverageObject);
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            const projectName = 'd2lam/mytest:main';
+
+            return enterpriseSonarPlugin
+                .getInfo({
+                    jobId: '1',
+                    startTime,
+                    endTime,
+                    pipelineId: 123,
+                    jobName: 'main',
+                    pipelineName: 'd2lam/mytest',
+                    scope: 'job',
+                    prParentJobId: 456
+                })
+                .then(result => {
+                    assert.calledWith(
+                        requestMock,
+                        sinon.match({
+                            url: `https://sonar.screwdriver.cd/api/measures/search_history?component=job%3A1&metrics=tests,test_errors,test_failures,coverage&from=2017-10-19T13%3A00%3A00${timezoneOffset}&to=2017-10-19T15%3A00%3A00${timezoneOffset}&ps=1`
+                        })
+                    );
+                    assert.deepEqual(result, {
+                        coverage: '98.8',
+                        tests: '7/10',
+                        projectUrl: `${config.sonarHost}/dashboard?id=job%3A1`,
+                        envVars: {
+                            SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
+                            SD_SONAR_HOST: 'https://sonar.screwdriver.cd',
+                            SD_SONAR_ENTERPRISE: true,
+                            SD_SONAR_PROJECT_KEY: 'job:1',
                             SD_SONAR_PROJECT_NAME: projectName
                         }
                     });
