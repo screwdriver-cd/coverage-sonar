@@ -34,18 +34,9 @@ class CoverageSonar extends CoverageBase {
             joi
                 .object()
                 .keys({
-                    sdApiUrl: joi
-                        .string()
-                        .uri()
-                        .required(),
-                    sdUiUrl: joi
-                        .string()
-                        .uri()
-                        .required(),
-                    sonarHost: joi
-                        .string()
-                        .uri()
-                        .required(),
+                    sdApiUrl: joi.string().uri().required(),
+                    sdUiUrl: joi.string().uri().required(),
+                    sonarHost: joi.string().uri().required(),
                     adminToken: joi.string().required(),
                     sonarEnterprise: joi.boolean().default(false),
                     sonarGitAppName: joi.string().default(DEFAULT_GIT_APP_NAME)
