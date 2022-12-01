@@ -44,7 +44,7 @@
     "joi": "^17.7.0",
     "screwdriver-coverage-base": "^3.0.0",
     "screwdriver-logger": "^2.0.0",
-    "screwdriver-request": "^2.0.0",
+    "screwdriver-request": "^2.0.1",
     "uuid": "^9.0.0"
   },
   "release": {
