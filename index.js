@@ -7,7 +7,7 @@ const joi = require('joi');
 const hoek = require('@hapi/hoek');
 const path = require('path');
 const request = require('screwdriver-request');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 const logger = require('screwdriver-logger');
 const CoverageBase = require('screwdriver-coverage-base');
 
@@ -34,18 +34,9 @@ class CoverageSonar extends CoverageBase {
             joi
                 .object()
                 .keys({
-                    sdApiUrl: joi
-                        .string()
-                        .uri()
-                        .required(),
-                    sdUiUrl: joi
-                        .string()
-                        .uri()
-                        .required(),
-                    sonarHost: joi
-                        .string()
-                        .uri()
-                        .required(),
+                    sdApiUrl: joi.string().uri().required(),
+                    sdUiUrl: joi.string().uri().required(),
+                    sonarHost: joi.string().uri().required(),
                     adminToken: joi.string().required(),
                     sonarEnterprise: joi.boolean().default(false),
                     sonarGitAppName: joi.string().default(DEFAULT_GIT_APP_NAME)
