@@ -191,7 +191,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -224,7 +224,7 @@ describe('index test', () => {
                     pipelineName: 'd2lam/mytest',
                     scope: 'pipeline'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -255,7 +255,7 @@ describe('index test', () => {
                     startTime,
                     endTime
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -291,7 +291,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -329,7 +329,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -367,7 +367,7 @@ describe('index test', () => {
                     pipelineName: 'd2lam/mytest',
                     prParentJobId: 456
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -407,7 +407,7 @@ describe('index test', () => {
                     scope: 'job',
                     prParentJobId: 456
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -446,7 +446,7 @@ describe('index test', () => {
                     scope: 'job',
                     prParentJobId: 456
                 })
-                .then((result) => {
+                .then(result => {
                     assert.calledWith(
                         requestMock,
                         sinon.match({
@@ -476,7 +476,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.deepEqual(result, {
                         envVars: {
                             SD_SONAR_AUTH_URL: `${sdSonarAuthUrl}?projectKey=job:1&projectName=d2lam/mytest:main&username=user-job-1&scope=job`,
@@ -504,7 +504,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.callCount(loggerMock.error, 1);
                     assert.deepEqual(result, {
                         coverage: 'N/A',
@@ -537,7 +537,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.notCalled(loggerMock.error);
                     assert.deepEqual(result, {
                         coverage: 'N/A',
@@ -570,7 +570,7 @@ describe('index test', () => {
                     jobName: 'main',
                     pipelineName: 'd2lam/mytest'
                 })
-                .then((result) => {
+                .then(result => {
                     assert.callCount(loggerMock.error, 1);
                     assert.deepEqual(result, {
                         coverage: 'N/A',
@@ -694,7 +694,7 @@ describe('index test', () => {
         it('gets an access token successfully', () => {
             const projectKey = 'job:1';
 
-            return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
                 assert.callCount(requestMock, 5);
                 assert.call(
                     requestMock,
@@ -716,7 +716,7 @@ describe('index test', () => {
 
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
-                .then((result) => {
+                .then(result => {
                     assert.callCount(requestMock, 6);
                     assert.call(
                         requestMock.firstCall,
@@ -747,7 +747,7 @@ describe('index test', () => {
             });
             requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
-            return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
                 assert.callCount(requestMock, 5);
                 assert.strictEqual(result, 'accesstoken');
             });
@@ -760,7 +760,7 @@ describe('index test', () => {
             });
             requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
-            return sonarPlugin.getAccessToken({ buildCredentials }).then((result) => {
+            return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
                 assert.callCount(requestMock, 5);
                 assert.strictEqual(result, 'accesstoken');
             });
@@ -798,7 +798,7 @@ describe('index test', () => {
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
-                .then((result) => {
+                .then(result => {
                     assert.callCount(requestMock, 6);
                     assert.callCount(loggerMock.error, 1);
                     assert.strictEqual(result, 'accesstoken');
@@ -818,7 +818,7 @@ describe('index test', () => {
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
-                .then((result) => {
+                .then(result => {
                     assert.callCount(requestMock, 5);
                     assert.callCount(loggerMock.error, 0);
                     assert.strictEqual(result, 'accesstoken');

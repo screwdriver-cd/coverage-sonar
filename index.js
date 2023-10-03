@@ -70,7 +70,7 @@ class CoverageSonar extends CoverageBase {
             method: 'POST',
             url: `${this.sonarHost}/api/projects/create?project=${projectKey}&name=${projectKey}`,
             username: this.adminToken
-        }).catch((err) => {
+        }).catch(err => {
             if (err.statusCode === 400 && err.message.includes('already exists')) {
                 return {};
             }
@@ -91,7 +91,7 @@ class CoverageSonar extends CoverageBase {
             method: 'POST',
             url: `${this.sonarHost}/api/users/create?login=${username}&name=${username}&password=${password}`,
             username: this.adminToken
-        }).catch((err) => {
+        }).catch(err => {
             if (err.statusCode === 400 && err.message.includes('already exists')) {
                 return {};
             }
@@ -130,7 +130,7 @@ class CoverageSonar extends CoverageBase {
                 method: 'POST',
                 url: `${this.sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
                 username: this.adminToken
-            }).catch((error) => {
+            }).catch(error => {
                 // if cannot configure app, do not throw err
                 logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
 
@@ -152,7 +152,7 @@ class CoverageSonar extends CoverageBase {
             method: 'POST',
             url: `${this.sonarHost}/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`,
             username: this.adminToken
-        }).catch((err) => {
+        }).catch(err => {
             throw new Error(`Failed to grant user ${username} permission: ${err.message}`);
         });
     }
@@ -170,7 +170,7 @@ class CoverageSonar extends CoverageBase {
             method: 'POST',
             url: `${this.sonarHost}/api/user_tokens/generate?login=${username}&name=${tokenName}`,
             username: this.adminToken
-        }).catch((err) => {
+        }).catch(err => {
             throw new Error(`Failed to generate user ${username} token: ${err.message}`);
         });
     }
@@ -205,11 +205,11 @@ class CoverageSonar extends CoverageBase {
             url: coverageUrl,
             username: this.adminToken
         })
-            .then((result) => {
+            .then(result => {
                 const measures = {};
 
                 // measures in result is an array, covert it to an object with metric name as key
-                (hoek.reach(result, 'body.measures') || []).forEach((measure) => {
+                (hoek.reach(result, 'body.measures') || []).forEach(measure => {
                     measures[measure.metric] = measure;
                 });
 
@@ -231,7 +231,7 @@ class CoverageSonar extends CoverageBase {
 
                 return metrics;
             })
-            .catch((err) => {
+            .catch(err => {
                 // if there is no coverage measurement target, 404 and 'Component key not found' are returned and this is not an error
                 if (err.statusCode !== 404 || !/Component key '.*' not found/.test(err.message)) {
                     // if cannot get coverage, do not throw err
