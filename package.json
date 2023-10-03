@@ -1,16 +1,15 @@
 {
   "name": "screwdriver-coverage-sonar",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "description": "SonarQube implementation of the coverage-base class",
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
-    "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true --color true",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --reporter mocha-multi-reporters --reporter-options configFile=./mocha.config.json --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true --color true"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:screwdriver-cd/coverage-sonar.git"
+    "url": "git+https://github.com/screwdriver-cd/coverage-sonar.git"
   },
   "homepage": "https://github.com/screwdriver-cd/coverage-sonar",
   "bugs": "https://github.com/screwdriver-cd/screwdriver/issues",
@@ -30,27 +29,25 @@
     "Tiffany Kyi <tiffanykyi@gmail.com>"
   ],
   "devDependencies": {
-    "chai": "^3.5.0",
-    "eslint": "^4.3.0",
-    "eslint-config-screwdriver": "^3.0.0",
-    "mocha": "^7.0.1",
+    "chai": "^4.3.7",
+    "eslint": "^8.28.0",
+    "eslint-config-screwdriver": "^7.0.0",
+    "mocha": "^10.1.0",
+    "mocha-multi-reporters": "^1.5.1",
+    "mocha-sonarqube-reporter": "^1.0.2",
     "mockery": "^2.1.0",
-    "nyc": "^15.0.0",
-    "sinon": "^5.1.1"
+    "nyc": "^15.1.0",
+    "sinon": "^15.0.0"
   },
   "dependencies": {
-    "hoek": "^5.0.3",
-    "joi": "^13.4.0",
-    "request": "^2.87.0",
-    "request-promise-native": "^1.0.5",
-    "screwdriver-coverage-base": "^2.0.0",
-    "screwdriver-logger": "^1.0.1",
-    "uuid": "^3.2.1"
+    "@hapi/hoek": "^10.0.1",
+    "joi": "^17.7.0",
+    "screwdriver-coverage-base": "^3.0.0",
+    "screwdriver-logger": "^2.0.0",
+    "screwdriver-request": "^2.0.1",
+    "uuid": "^9.0.0"
   },
   "release": {
-    "debug": false,
-    "verifyConditions": {
-      "path": "./node_modules/semantic-release/src/lib/plugin-noop.js"
-    }
+    "debug": false
   }
 }
