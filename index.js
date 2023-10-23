@@ -136,7 +136,7 @@ class CoverageSonar extends CoverageBase {
                 const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
 
                 logger.info(
-                    `Configuring git app with following parameters, almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}`
+                    `Configuring git app with following parameters, ${parameters}`
                 );
 
                 return request({
