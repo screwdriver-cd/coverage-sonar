@@ -806,7 +806,7 @@ describe('index test', () => {
         });
 
         it('does not configure Git App if binding already exists', () => {
-            requestMock.onCall(1).resolves({});
+            requestMock.onCall(1).resolves({ repository: 'd2lam/mytest' });
 
             const projectKey = 'pipeline:123';
             const projectName = 'd2lam/mytest';
@@ -822,6 +822,32 @@ describe('index test', () => {
                     assert.callCount(requestMock, 5);
                     assert.callCount(loggerMock.error, 0);
                     assert.strictEqual(result, 'accesstoken');
+                });
+        });
+
+        it('update Git App if project name has been changed', () => {
+            requestMock.onCall(1).resolves({ repository: 'd2lam/oldname' });
+
+            const projectKey = 'pipeline:123';
+            const projectName = 'd2lam/newname';
+            const username = 'user-pipeline-123';
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } });
+
+            // eslint-disable-next-line max-len
+            return enterpriseSonarPlugin
+                .getAccessToken({ buildCredentials, projectKey, username, projectName })
+                .then(result => {
+                    assert.callCount(requestMock, 6);
+                    assert.callCount(loggerMock.error, 0);
+                    assert.strictEqual(result, 'accesstoken');
+                    assert.calledWith(
+                        requestMock,
+                        sinon.match({
+                            url: `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Screwdriver%20Sonar%20PR%20Checks&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`
+                        })
+                    );
                 });
         });
 
