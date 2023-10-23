@@ -116,27 +116,42 @@ class CoverageSonar extends CoverageBase {
             method: 'GET',
             url: `${this.sonarHost}/api/alm_settings/get_binding?project=${componentId}`,
             username: this.adminToken
-        }).catch(() => {
-            // if binding does not exist, add it
-            logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
+        })
+            .then(result => {
+                // if project name has been changed, update it
+                if (projectName && (!result.repository || result.repository !== projectName)) {
+                    throw new Error(`Repository name has been changed from ${result.repository} to ${projectName}!`);
+                }
 
-            if (!this.sonarEnterprise || !projectName) {
-                return Promise.resolve();
-            }
+                return result;
+            })
+            .catch(() => {
+                // if binding does not exist, add it
+                logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
 
-            const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
+                if (!this.sonarEnterprise || !projectName) {
+                    return Promise.resolve();
+                }
 
-            return request({
-                method: 'POST',
-                url: `${this.sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
-                username: this.adminToken
-            }).catch(error => {
-                // if cannot configure app, do not throw err
-                logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
+                const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
 
-                return Promise.resolve();
+                logger.info(
+                    `Configuring git app with following parameters, almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}`
+                );
+
+                return request({
+                    method: 'POST',
+                    url: `${this.sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+                    username: this.adminToken
+                }).catch(error => {
+                    // if cannot configure app, do not throw err
+                    logger.error(
+                        `Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`
+                    );
+
+                    return Promise.resolve();
+                });
             });
-        });
     }
 
     /**
