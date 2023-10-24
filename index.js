@@ -45,14 +45,15 @@ class CoverageSonar extends CoverageBase {
             'Invalid config for sonar coverage plugin'
         );
 
-        this.sdCoverageAuthUrl = `${config.sdApiUrl}/v4/coverage/token`;
-        this.adminToken = config.adminToken;
-        this.sonarHost = config.sonarHost;
-        this.sonarEnterprise = config.sonarEnterprise;
-        this.sonarGitAppName = config.sonarGitAppName;
+        // use this.config for default values
+        this.sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
+        this.adminToken = this.config.adminToken;
+        this.sonarHost = this.config.sonarHost;
+        this.sonarEnterprise = this.config.sonarEnterprise;
+        this.sonarGitAppName = this.config.sonarGitAppName;
 
         this.uploadCommands = COMMANDS.replace('$SD_SONAR_HOST', this.sonarHost)
-            .replace('$SD_UI_URL', config.sdUiUrl)
+            .replace('$SD_UI_URL', this.config.sdUiUrl)
             .replace('$SD_SONAR_ENTERPRISE', this.sonarEnterprise)
             .split('\n');
 
