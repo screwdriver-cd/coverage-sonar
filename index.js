@@ -369,13 +369,20 @@ class CoverageSonar extends CoverageBase {
         }
 
         const password = uuidv4();
+        const componentId = encodeURIComponent(projectData.projectKey);
+        const projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
 
         return this.createProject(projectData.projectKey)
             .then(() => this.configureGitApp(projectData.projectKey, projectData.projectName))
             .then(() => this.createUser(projectData.username, password))
             .then(() => this.grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => this.generateToken(projectData.username))
-            .then(res => res.body.token);
+            .then(res => {
+                return {
+                    token: res.body.token,
+                    projectUrl
+                }
+            });
     }
 
     /**
