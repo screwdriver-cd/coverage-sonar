@@ -286,7 +286,6 @@ class CoverageSonar extends CoverageBase {
         pipelineId,
         pipelineName,
         projectKey,
-        prNum,
         prParentJobId
     }) {
         let jobId = buildJobId;
@@ -428,7 +427,6 @@ class CoverageSonar extends CoverageBase {
             scope,
             pipelineName,
             jobName,
-            prNum,
             projectKey: coverageProjectKey,
             prParentJobId
         });
