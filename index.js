@@ -286,22 +286,28 @@ class CoverageSonar extends CoverageBase {
         pipelineId,
         pipelineName,
         projectKey,
+        prNum,
         prParentJobId
     }) {
         let jobId = buildJobId;
         let jobName = buildJobName;
+        let componentId;
+        let projectUrl;
 
         // Determine scope based on projectKey
         if (projectKey) {
             const [projectScope, id] = projectKey.split(':');
             const projectName = projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`;
             const username = `user-${projectScope}-${id}`;
+            componentId = encodeURIComponent(projectKey);
+            projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
 
             return {
                 projectKey,
                 username,
                 projectName,
-                projectScope
+                projectScope,
+                projectUrl
             };
         }
 
@@ -310,11 +316,15 @@ class CoverageSonar extends CoverageBase {
         const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
 
         if (coverageScope === 'pipeline') {
+            componentId = encodeURIComponent(`pipeline:${pipelineId}`);
+            projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
+
             return {
                 projectKey: `pipeline:${pipelineId}`,
                 projectName: pipelineName,
                 username: `user-pipeline-${pipelineId}`,
-                projectScope: coverageScope
+                projectScope: coverageScope,
+                projectUrl
             };
         }
 
@@ -333,7 +343,8 @@ class CoverageSonar extends CoverageBase {
             projectKey: `job:${jobId}`,
             projectName: `${pipelineName}:${jobName}`,
             username: `user-job-${jobId}`,
-            projectScope: coverageScope
+            projectScope: coverageScope,
+            projectUrl: `${this.sonarHost}/dashboard?id=${encodeURIComponent(`job:${jobId}`)}`
         };
     }
 
@@ -369,20 +380,13 @@ class CoverageSonar extends CoverageBase {
         }
 
         const password = uuidv4();
-        const componentId = encodeURIComponent(projectData.projectKey);
-        const projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
 
         return this.createProject(projectData.projectKey)
             .then(() => this.configureGitApp(projectData.projectKey, projectData.projectName))
             .then(() => this.createUser(projectData.username, password))
             .then(() => this.grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => this.generateToken(projectData.username))
-            .then(res => {
-                return {
-                    token: res.body.token,
-                    projectUrl
-                }
-            });
+            .then(res => res.body.token);
     }
 
     /**
@@ -424,6 +428,7 @@ class CoverageSonar extends CoverageBase {
             scope,
             pipelineName,
             jobName,
+            prNum,
             projectKey: coverageProjectKey,
             prParentJobId
         });
