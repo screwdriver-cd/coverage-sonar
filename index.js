@@ -298,6 +298,7 @@ class CoverageSonar extends CoverageBase {
             const [projectScope, id] = projectKey.split(':');
             const projectName = projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`;
             const username = `user-${projectScope}-${id}`;
+
             componentId = encodeURIComponent(projectKey);
             projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
 
