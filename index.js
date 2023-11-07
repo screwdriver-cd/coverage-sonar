@@ -290,8 +290,6 @@ class CoverageSonar extends CoverageBase {
     }) {
         let jobId = buildJobId;
         let jobName = buildJobName;
-        let componentId;
-        let projectUrl;
 
         // Determine scope based on projectKey
         if (projectKey) {
@@ -299,15 +297,11 @@ class CoverageSonar extends CoverageBase {
             const projectName = projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`;
             const username = `user-${projectScope}-${id}`;
 
-            componentId = encodeURIComponent(projectKey);
-            projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
-
             return {
                 projectKey,
                 username,
                 projectName,
-                projectScope,
-                projectUrl
+                projectScope
             };
         }
 
@@ -316,8 +310,8 @@ class CoverageSonar extends CoverageBase {
         const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
 
         if (coverageScope === 'pipeline') {
-            componentId = encodeURIComponent(`pipeline:${pipelineId}`);
-            projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
+            const componentId = encodeURIComponent(`pipeline:${pipelineId}`);
+            const projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
 
             return {
                 projectKey: `pipeline:${pipelineId}`,
@@ -343,8 +337,7 @@ class CoverageSonar extends CoverageBase {
             projectKey: `job:${jobId}`,
             projectName: `${pipelineName}:${jobName}`,
             username: `user-job-${jobId}`,
-            projectScope: coverageScope,
-            projectUrl: `${this.sonarHost}/dashboard?id=${encodeURIComponent(`job:${jobId}`)}`
+            projectScope: coverageScope
         };
     }
 
