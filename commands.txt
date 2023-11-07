@@ -2,9 +2,7 @@ if [ ! -f sonar-project.properties ] && [ -z "$SD_SONAR_OPTS" ]; then echo "ERRO
 if [ ! -z "$SD_PULL_REQUEST" ] && [ "$SD_SONAR_ENTERPRISE" = true ]; then export SD_SONAR_OPTS="${SD_SONAR_OPTS} -Dsonar.pullrequest.key=$SD_PULL_REQUEST -Dsonar.pullrequest.branch='${PR_BRANCH_NAME#*/}' -Dsonar.pullrequest.base='${PR_BASE_BRANCH_NAME}'"; fi
 if curl --version > /dev/null 2>&1; then SD_CURL_CMD_WRAPPER="eval"; else SD_CURL_CMD_WRAPPER="sd-step exec --pkg-version 7.54.1 core/curl"; fi
 export SD_CURL_CMD_WRAPPER
-SONAR_RESPONSE=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer ${SD_TOKEN}\" \"${SD_SONAR_AUTH_URL}&selfSonarHost=${SD_SELF_SONAR_HOST}&selfSonarAdminToken=${SD_SELF_SONAR_ADMIN_TOKEN}\""`
-SONAR_TOKEN="$(jq -jn "$SONAR_RESPONSE|.token")"
-SD_SONAR_PROJECT_URL="$(jq -jn "$SONAR_RESPONSE|.projectUrl")"
+SONAR_TOKEN=`$SD_CURL_CMD_WRAPPER "curl -H \"Authorization: Bearer ${SD_TOKEN}\" \"${SD_SONAR_AUTH_URL}&selfSonarHost=${SD_SELF_SONAR_HOST}&selfSonarAdminToken=${SD_SELF_SONAR_ADMIN_TOKEN}\""`
 VERSION=`cat sonar-project.properties | awk -F= '/sonar.projectVersion=/{print $2}'`
 PROJECT_VERSION=${VERSION:='not provided'}
 SONAR_OPTIONS=`eval echo "$SD_SONAR_OPTS"`
@@ -25,4 +23,3 @@ $SD_CURL_CMD_WRAPPER "curl -o ./sonarscanner.zip -L https://binaries.sonarsource
 $SD_UNZIP_CMD_WRAPPER "unzip -q ./sonarscanner.zip"
 SCANNER_PATH="sonar-scanner-${SD_SONAR_SCANNER_CLI_VERSION}-${TARGET_OS}/bin/sonar-scanner"
 eval $SCANNER_PATH $SCANNER_OPTION
-if [ ! -z "$SD_SONAR_PROJECT_URL" ]; then $SD_CURL_CMD_WRAPPER "curl -X PUT -H \"Authorization: Bearer ${SD_TOKEN}\" \"${SD_API_URL}/pipelines/${SD_PIPELINE_ID}\" -d \"{\"badges\":{\"sonar\":{\"defaultName\":\"${SD_SONAR_PROJECT_NAME}\",\"defaultUri\":\"${SD_SONAR_PROJECT_URL}\"}}}\"";fi
