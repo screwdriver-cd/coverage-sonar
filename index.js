@@ -296,13 +296,20 @@ class CoverageSonar extends CoverageBase {
             const [projectScope, id] = projectKey.split(':');
             const projectName = projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`;
             const username = `user-${projectScope}-${id}`;
-
-            return {
+            const projectData = {
                 projectKey,
                 username,
                 projectName,
                 projectScope
             };
+
+            if (projectScope === 'pipeline') {
+                const componentId = encodeURIComponent(`pipeline:${id}`);
+
+                projectData.projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
+            }
+
+            return projectData;
         }
 
         // Use user-configured scope; otherwise figure out default scope: pipeline scope for enterprise edition, job scope for everything else
@@ -310,11 +317,15 @@ class CoverageSonar extends CoverageBase {
         const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
 
         if (coverageScope === 'pipeline') {
+            const componentId = encodeURIComponent(`pipeline:${pipelineId}`);
+            const projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
+
             return {
                 projectKey: `pipeline:${pipelineId}`,
                 projectName: pipelineName,
                 username: `user-pipeline-${pipelineId}`,
-                projectScope: coverageScope
+                projectScope: coverageScope,
+                projectUrl
             };
         }
 
