@@ -120,6 +120,7 @@ describe('index test', () => {
 
             assert.ok(sonarPlugin);
             assert.property(sonarPlugin, 'getAccessToken');
+            assert.property(sonarPlugin, 'getProjectData');
             assert.property(sonarPlugin, 'getInfo');
             assert.property(sonarPlugin, 'getUploadCoverageCmd');
             assert.deepEqual(sonarPlugin.config, config);
@@ -129,6 +130,7 @@ describe('index test', () => {
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             assert.ok(enterpriseSonarPlugin);
             assert.property(enterpriseSonarPlugin, 'getAccessToken');
+            assert.property(sonarPlugin, 'getProjectData');
             assert.property(sonarPlugin, 'getInfo');
             assert.property(enterpriseSonarPlugin, 'getUploadCoverageCmd');
             assert.deepEqual(enterpriseSonarPlugin.config, enterpriseConfig);
@@ -903,6 +905,47 @@ describe('index test', () => {
                         'Failed to generate user user-job-1 token: 500 - internal server error'
                     )
                 );
+        });
+    });
+
+    describe('getProjectData', () => {
+        const buildCredentials = { jobId: 1, pipelineId: 123 };
+
+        beforeEach(() => {
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
+        });
+
+        it('gets projectUrl with pipeline scope from projectKey', () => {
+            const projectKey = 'pipeline:123';
+            const projectName = 'd2lam/mytest';
+            const username = 'user-pipeline-123';
+            const projectUrl = 'https://sonar.screwdriver.cd/dashboard?id=pipeline%3A123';
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+
+            const result = enterpriseSonarPlugin.getProjectData({
+                buildCredentials,
+                projectKey,
+                username,
+                projectName
+            });
+
+            assert.strictEqual(result.projectUrl, projectUrl, 'Pipeline scope has projectUrl');
+        });
+
+        it('get projectUrl with pipeline scope from pipelineId without projectKey', () => {
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+
+            const projectUrl = 'https://sonar.screwdriver.cd/dashboard?id=pipeline%3A123';
+            const result = enterpriseSonarPlugin.getProjectData({
+                buildCredentials,
+                pipelineId: 123,
+                pipelineName: 'd2lam/mytest',
+                scope: 'pipeline'
+            });
+
+            assert.strictEqual(result.projectUrl, projectUrl, 'Pipeline scope has projectUrl');
         });
     });
 });
