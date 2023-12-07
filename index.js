@@ -45,14 +45,15 @@ class CoverageSonar extends CoverageBase {
             'Invalid config for sonar coverage plugin'
         );
 
-        this.sdCoverageAuthUrl = `${config.sdApiUrl}/v4/coverage/token`;
-        this.adminToken = config.adminToken;
-        this.sonarHost = config.sonarHost;
-        this.sonarEnterprise = config.sonarEnterprise;
-        this.sonarGitAppName = config.sonarGitAppName;
+        // use this.config for default values
+        this.sdCoverageAuthUrl = `${this.config.sdApiUrl}/v4/coverage/token`;
+        this.adminToken = this.config.adminToken;
+        this.sonarHost = this.config.sonarHost;
+        this.sonarEnterprise = this.config.sonarEnterprise;
+        this.sonarGitAppName = this.config.sonarGitAppName;
 
         this.uploadCommands = COMMANDS.replace('$SD_SONAR_HOST', this.sonarHost)
-            .replace('$SD_UI_URL', config.sdUiUrl)
+            .replace('$SD_UI_URL', this.config.sdUiUrl)
             .replace('$SD_SONAR_ENTERPRISE', this.sonarEnterprise)
             .split('\n');
 
@@ -116,27 +117,40 @@ class CoverageSonar extends CoverageBase {
             method: 'GET',
             url: `${this.sonarHost}/api/alm_settings/get_binding?project=${componentId}`,
             username: this.adminToken
-        }).catch(() => {
-            // if binding does not exist, add it
-            logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
+        })
+            .then(result => {
+                // if project name has been changed, update it
+                if (projectName && (!result.repository || result.repository !== projectName)) {
+                    throw new Error(`Repository name has been changed from ${result.repository} to ${projectName}!`);
+                }
 
-            if (!this.sonarEnterprise || !projectName) {
-                return Promise.resolve();
-            }
+                return result;
+            })
+            .catch(() => {
+                // if binding does not exist, add it
+                logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
 
-            const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
+                if (!this.sonarEnterprise || !projectName) {
+                    return Promise.resolve();
+                }
 
-            return request({
-                method: 'POST',
-                url: `${this.sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
-                username: this.adminToken
-            }).catch(error => {
-                // if cannot configure app, do not throw err
-                logger.error(`Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`);
+                const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
 
-                return Promise.resolve();
+                logger.info(`Configuring git app with following parameters, ${parameters}`);
+
+                return request({
+                    method: 'POST',
+                    url: `${this.sonarHost}/api/alm_settings/set_github_binding?${parameters}`,
+                    username: this.adminToken
+                }).catch(error => {
+                    // if cannot configure app, do not throw err
+                    logger.error(
+                        `Failed to configure Git App ${gitApp} for Sonar project ${projectKey}: ${error.message}`
+                    );
+
+                    return Promise.resolve();
+                });
             });
-        });
     }
 
     /**
@@ -282,13 +296,20 @@ class CoverageSonar extends CoverageBase {
             const [projectScope, id] = projectKey.split(':');
             const projectName = projectScope === 'pipeline' ? pipelineName : `${pipelineName}:${jobName}`;
             const username = `user-${projectScope}-${id}`;
-
-            return {
+            const projectData = {
                 projectKey,
                 username,
                 projectName,
                 projectScope
             };
+
+            if (projectScope === 'pipeline') {
+                const componentId = encodeURIComponent(`pipeline:${id}`);
+
+                projectData.projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
+            }
+
+            return projectData;
         }
 
         // Use user-configured scope; otherwise figure out default scope: pipeline scope for enterprise edition, job scope for everything else
@@ -296,11 +317,15 @@ class CoverageSonar extends CoverageBase {
         const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
 
         if (coverageScope === 'pipeline') {
+            const componentId = encodeURIComponent(`pipeline:${pipelineId}`);
+            const projectUrl = `${this.sonarHost}/dashboard?id=${componentId}`;
+
             return {
                 projectKey: `pipeline:${pipelineId}`,
                 projectName: pipelineName,
                 username: `user-pipeline-${pipelineId}`,
-                projectScope: coverageScope
+                projectScope: coverageScope,
+                projectUrl
             };
         }
 

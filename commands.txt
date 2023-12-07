@@ -11,8 +11,11 @@ if echo $SCM_URL | grep git@ > /dev/null 2>&1; then export SONAR_SCM_URL=`echo $
 if [ ! -z "$SD_SELF_SONAR_HOST" ]; then SCANNER_OPTION='"-Dsonar.host.url=$SD_SELF_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=$SD_SONAR_PROJECT_KEY" "-Dsonar.projectName=$SD_SONAR_PROJECT_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SONAR_SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" "-Dsonar.scm.revision=$SD_BUILD_SHA" $SONAR_OPTIONS'; else SCANNER_OPTION='"-Dsonar.host.url=$SD_SONAR_HOST" "-Dsonar.login=$SONAR_TOKEN" "-Dsonar.projectKey=$SD_SONAR_PROJECT_KEY" "-Dsonar.projectName=$SD_SONAR_PROJECT_NAME" "-Dsonar.projectVersion=$PROJECT_VERSION" "-Dsonar.links.scm=$SONAR_SCM_URL" "-Dsonar.links.ci=$SD_UI_URL/pipelines/$SD_PIPELINE_ID" "-Dsonar.scm.revision=$SD_BUILD_SHA" $SONAR_OPTIONS'; fi
 SCANNER_PATH="/opt/sd/sonar-scanner/bin/sonar-scanner"
 if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
-if [ `uname` = 'Darwin' ]; then TARGET_OS='macosx'; else TARGET_OS='linux'; fi
-SCANNER_PATH="/opt/sd/sonarscanner-cli-${TARGET_OS}/bin/sonar-scanner"
+OS="$(uname)"
+ARCH="$(uname -m)"
+if [ "$OS" = 'Darwin' ]; then TARGET_OS='macosx'; else TARGET_OS='linux'; fi
+if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then TARGET_ARCH='-arm64'; else TARGET_ARCH=''; fi
+SCANNER_PATH="/opt/sd/sonarscanner-cli-${TARGET_OS}${TARGET_ARCH}/bin/sonar-scanner"
 if [ -s ${SCANNER_PATH} ] && [ -x ${SCANNER_PATH} ]; then eval $SCANNER_PATH $SCANNER_OPTION || true; exit 0; fi
 if unzip -version > /dev/null 2>&1; then SD_UNZIP_CMD_WRAPPER="eval"; else SD_UNZIP_CMD_WRAPPER="sd-step exec --pkg-version 6.0 core/unzip"; fi
 export SD_UNZIP_CMD_WRAPPER
