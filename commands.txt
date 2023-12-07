@@ -1,3 +1,4 @@
+if [ "$SD_PRIVATE_PIPELINE" = "true" ] && [ "$SD_ALLOW_PRIVATE_COVERAGE_SEND" != "true" ]; then echo "INFO - This is a private pipeline and sending coverage is not allowed." && exit 0; fi
 if [ ! -f sonar-project.properties ] && [ -z "$SD_SONAR_OPTS" ]; then echo "ERROR - No sonar project properties defined." && exit 0; fi
 if [ ! -z "$SD_PULL_REQUEST" ] && [ "$SD_SONAR_ENTERPRISE" = true ]; then export SD_SONAR_OPTS="${SD_SONAR_OPTS} -Dsonar.pullrequest.key=$SD_PULL_REQUEST -Dsonar.pullrequest.branch='${PR_BRANCH_NAME#*/}' -Dsonar.pullrequest.base='${PR_BASE_BRANCH_NAME}'"; fi
 if curl --version > /dev/null 2>&1; then SD_CURL_CMD_WRAPPER="eval"; else SD_CURL_CMD_WRAPPER="sd-step exec --pkg-version 7.54.1 core/curl"; fi
