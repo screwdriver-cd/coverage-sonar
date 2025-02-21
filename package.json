@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-coverage-sonar",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "SonarQube implementation of the coverage-base class",
   "main": "index.js",
   "scripts": {
@@ -31,8 +31,8 @@
   ],
   "devDependencies": {
     "chai": "^4.3.7",
-    "eslint": "^8.28.0",
-    "eslint-config-screwdriver": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-screwdriver": "^8.0.0",
     "mocha": "^10.1.0",
     "mocha-multi-reporters": "^1.5.1",
     "mocha-sonarqube-reporter": "^1.0.2",
@@ -41,12 +41,12 @@
     "sinon": "^15.0.0"
   },
   "dependencies": {
-    "@hapi/hoek": "^10.0.1",
-    "joi": "^17.7.0",
-    "screwdriver-coverage-base": "^3.0.0",
-    "screwdriver-logger": "^2.0.0",
-    "screwdriver-request": "^2.0.1",
-    "uuid": "^9.0.0"
+    "@hapi/hoek": "^11.0.7",
+    "joi": "^17.13.3",
+    "screwdriver-coverage-base": "^4.0.0",
+    "screwdriver-logger": "^3.0.0",
+    "screwdriver-request": "^3.0.0",
+    "uuid": "^11.1.0"
   },
   "release": {
     "debug": false
