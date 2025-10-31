@@ -102,13 +102,60 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
+     * Returns the configured Git App name for the given SCM context
+     * @param {String} scmContext SCM context in format "scm:host" (e.g., "github:github.com")
+     * @returns {String} Git App name
+     */
+    async _getGitApp(scmContext) {
+        const scmHost = scmContext && scmContext.includes(':') ? scmContext.split(':')[1] : scmContext;
+
+        if (!scmHost) {
+            logger.error('Invalid scmContext provided; using default Git App name');
+
+            return this.sonarGitAppName;
+        }
+
+        const response = await request({
+            method: 'GET',
+            url: `${this.sonarHost}/api/alm_settings/list`,
+            username: this.adminToken
+        });
+
+        const almSettings = (response && response.almSettings) || [];
+
+        if (almSettings.length === 0) {
+            logger.error('No ALM settings found in SonarQube; using default Git App name');
+
+            return this.sonarGitAppName;
+        }
+        if (almSettings.length === 1) {
+            return almSettings[0].key;
+        }
+
+        const gitAppSetting = almSettings.find(app => app.key.endsWith(`[${scmHost}]`));
+
+        if (!gitAppSetting) {
+            const availableKeys = almSettings.map(app => app.key).join(', ');
+
+            logger.error(
+                `Git App for scm '[${scmHost}]' not found in SonarQube. Available keys: ${availableKeys}. Using default Git App name`
+            );
+
+            return this.sonarGitAppName;
+        }
+
+        return gitAppSetting.key;
+    }
+
+    /**
      * Configure Git App in SonarQube
      * @param  {String} projectKey  Sonar project key
      * @param  {String} projectName Sonar project name
+     * @param  {String} scmContext  SCM context (github:github.com or github:github.example.com)
      * @return {Promise}            Nothing if Git App configured successfully
      */
-    configureGitApp(projectKey, projectName) {
-        const gitApp = this.sonarGitAppName;
+    async configureGitApp(projectKey, projectName, scmContext) {
+        const gitApp = await this._getGitApp(scmContext);
         const gitAppEncoded = encodeURIComponent(gitApp);
         const componentId = encodeURIComponent(projectKey);
 
@@ -363,7 +410,7 @@ class CoverageSonar extends CoverageBase {
      *                                          to talk to coverage server
      */
     _getAccessToken({ scope, username, projectKey, projectName, jobName, pipelineName, buildCredentials }) {
-        const { jobId, pipelineId, prParentJobId } = buildCredentials;
+        const { jobId, pipelineId, prParentJobId, scmContext } = buildCredentials;
         let projectData = { username, projectKey, projectName };
 
         if (!username || !projectKey || !projectName || projectName.includes('undefined')) {
@@ -382,7 +429,7 @@ class CoverageSonar extends CoverageBase {
         const password = uuidv4();
 
         return this.createProject(projectData.projectKey)
-            .then(() => this.configureGitApp(projectData.projectKey, projectData.projectName))
+            .then(() => this.configureGitApp(projectData.projectKey, projectData.projectName, scmContext))
             .then(() => this.createUser(projectData.username, password))
             .then(() => this.grantUserPermission(projectData.username, projectData.projectKey))
             .then(() => this.generateToken(projectData.username))
