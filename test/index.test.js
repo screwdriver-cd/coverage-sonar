@@ -685,23 +685,42 @@ describe('index test', () => {
     });
 
     describe('getAccessToken', () => {
-        const buildCredentials = { jobId: 1, pipelineId: 123 };
+        const buildCredentials = { jobId: 1, pipelineId: 123, scmContext: 'github.com' };
         const gitAppEncoded = 'Screwdriver%20Sonar%20PR%20Checks';
+        const almResponse = {
+            almSettings: [
+                {
+                    key: 'Screwdriver Sonar PR Checks',
+                    alm: 'github',
+                    url: 'https://api.github.com'
+                }
+            ]
+        };
 
         beforeEach(() => {
-            requestMock.onCall(1).rejects();
-            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
+            requestMock.onCall(0).resolves(null); // createProject
+            requestMock.onCall(1).resolves(almResponse); // alm_settings/list
+            requestMock.onCall(2).rejects(); // get_binding returns 404
+            requestMock.onCall(3).resolves(null); // createUser
+            requestMock.onCall(4).resolves(null); // grantUserPermission
+            requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } }); // generateToken
         });
 
         it('gets an access token successfully', () => {
             const projectKey = 'job:1';
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
-                assert.callCount(requestMock, 5);
+                assert.callCount(requestMock, 6);
                 assert.call(
-                    requestMock,
+                    requestMock.firstCall,
                     sinon.match({
                         url: `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}`
+                    })
+                );
+                assert.call(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
                     })
                 );
                 assert.strictEqual(result, 'accesstoken');
@@ -714,26 +733,32 @@ describe('index test', () => {
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } });
+            requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
 
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
                 .then(result => {
-                    assert.callCount(requestMock, 6);
+                    assert.callCount(requestMock, 7);
                     assert.call(
                         requestMock.firstCall,
                         sinon.match({
                             url: `https://sonar.screwdriver.cd/api/projects/create?project=${projectKey}&name=${projectKey}`
                         })
                     );
-                    assert.calledWith(
-                        requestMock.thirdCall,
+                    assert.call(
+                        requestMock.secondCall,
+                        sinon.match({
+                            url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
+                        })
+                    );
+                    assert.call(
+                        requestMock.fourthCall,
                         sinon.match({
                             url: `https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=${gitAppEncoded}&project=pipeline%3A123&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`
                         })
                     );
                     assert.call(
-                        requestMock.fourthCall,
+                        requestMock.fifthCall,
                         sinon.match({
                             url: `https://sonar.screwdriver.cd/api/permissions/add_user?login=${username}&permission=scan&projectKey=${projectKey}`
                         })
@@ -747,23 +772,21 @@ describe('index test', () => {
                 statusCode: 400,
                 message: 'Project already exists.'
             });
-            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
-                assert.callCount(requestMock, 5);
+                assert.callCount(requestMock, 6);
                 assert.strictEqual(result, 'accesstoken');
             });
         });
 
         it('gets an access token successfully with existing user', () => {
-            requestMock.onCall(2).rejects({
+            requestMock.onCall(3).rejects({
                 statusCode: 400,
                 message: 'user already exists.'
             });
-            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
 
             return sonarPlugin.getAccessToken({ buildCredentials }).then(result => {
-                assert.callCount(requestMock, 5);
+                assert.callCount(requestMock, 6);
                 assert.strictEqual(result, 'accesstoken');
             });
         });
@@ -785,7 +808,7 @@ describe('index test', () => {
         });
 
         it('does not throw if failed to configure Git App', () => {
-            requestMock.onCall(2).rejects({
+            requestMock.onCall(3).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
@@ -795,43 +818,23 @@ describe('index test', () => {
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } });
+            requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
                 .then(result => {
-                    assert.callCount(requestMock, 6);
+                    assert.callCount(requestMock, 7);
                     assert.callCount(loggerMock.error, 1);
                     assert.strictEqual(result, 'accesstoken');
                 });
         });
 
         it('does not configure Git App if binding already exists', () => {
-            requestMock.onCall(1).resolves({ repository: 'd2lam/mytest' });
+            requestMock.onCall(2).resolves({ repository: 'd2lam/mytest' });
 
             const projectKey = 'pipeline:123';
             const projectName = 'd2lam/mytest';
-            const username = 'user-pipeline-123';
-
-            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
-            requestMock.onCall(4).resolves({ body: { token: 'accesstoken' } });
-
-            // eslint-disable-next-line max-len
-            return enterpriseSonarPlugin
-                .getAccessToken({ buildCredentials, projectKey, username, projectName })
-                .then(result => {
-                    assert.callCount(requestMock, 5);
-                    assert.callCount(loggerMock.error, 0);
-                    assert.strictEqual(result, 'accesstoken');
-                });
-        });
-
-        it('update Git App if project name has been changed', () => {
-            requestMock.onCall(1).resolves({ repository: 'd2lam/oldname' });
-
-            const projectKey = 'pipeline:123';
-            const projectName = 'd2lam/newname';
             const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
@@ -842,6 +845,26 @@ describe('index test', () => {
                 .getAccessToken({ buildCredentials, projectKey, username, projectName })
                 .then(result => {
                     assert.callCount(requestMock, 6);
+                    assert.callCount(loggerMock.error, 0);
+                    assert.strictEqual(result, 'accesstoken');
+                });
+        });
+
+        it('update Git App if project name has been changed', () => {
+            requestMock.onCall(2).resolves({ repository: 'd2lam/oldname' });
+
+            const projectKey = 'pipeline:123';
+            const projectName = 'd2lam/newname';
+            const username = 'user-pipeline-123';
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
+
+            // eslint-disable-next-line max-len
+            return enterpriseSonarPlugin
+                .getAccessToken({ buildCredentials, projectKey, username, projectName })
+                .then(result => {
+                    assert.callCount(requestMock, 7);
                     assert.callCount(loggerMock.error, 0);
                     assert.strictEqual(result, 'accesstoken');
                     assert.calledWith(
@@ -854,7 +877,7 @@ describe('index test', () => {
         });
 
         it('throws err if failed to create/locate user', () => {
-            requestMock.onCall(2).rejects({
+            requestMock.onCall(3).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
@@ -870,7 +893,7 @@ describe('index test', () => {
         });
 
         it('throws err if failed to grant user permission', () => {
-            requestMock.onCall(3).rejects({
+            requestMock.onCall(4).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
@@ -889,7 +912,7 @@ describe('index test', () => {
         });
 
         it('it throws err if failed to generate user token', () => {
-            requestMock.onCall(4).rejects({
+            requestMock.onCall(5).rejects({
                 statusCode: 500,
                 message: '500 - internal server error'
             });
@@ -946,6 +969,356 @@ describe('index test', () => {
             });
 
             assert.strictEqual(result.projectUrl, projectUrl, 'Pipeline scope has projectUrl');
+        });
+    });
+
+    describe('configureGitApp', () => {
+        const projectKey = 'pipeline:123';
+        const projectName = 'ppaul/covtest';
+
+        beforeEach(() => {
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+        });
+
+        it('selects the only ALM setting when there is one', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'gh1',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(2).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
+                    })
+                );
+                assert.calledWith(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=gh1&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+            });
+        });
+
+        it('selects ALM setting by SCM context when multiple exist', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'Sonar [git.example.com]',
+                        alm: 'github',
+                        url: 'https://git.example.com'
+                    },
+                    {
+                        key: 'Sonar [github.com]',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(2).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
+                    })
+                );
+                assert.calledWith(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Sonar%20%5Bgithub.com%5D&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+            });
+        });
+
+        it('returns default Git App name when no ALM settings exist', () => {
+            const almResponse = {
+                almSettings: []
+            };
+
+            requestMock.onCall(0).resolves(almResponse); // alm_settings/list
+            requestMock.onCall(1).rejects(); // get_binding returns 404
+            requestMock.onCall(2).resolves(null); // set_github_binding
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
+                    })
+                );
+                assert.calledWith(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Screwdriver%20Sonar%20PR%20Checks&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+                assert.callCount(loggerMock.error, 1);
+            });
+        });
+
+        it('returns default Git App name when SCM context does not match any ALM setting', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'Sonar [git.example.com]',
+                        alm: 'github',
+                        url: 'https://git.example.com'
+                    },
+                    {
+                        key: 'Sonar [gitlab.com]',
+                        alm: 'gitlab',
+                        url: 'https://gitlab.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse); // alm_settings/list
+            requestMock.onCall(1).rejects(); // get_binding returns 404
+            requestMock.onCall(2).resolves(null); // set_github_binding
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
+                    })
+                );
+                assert.calledWith(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Screwdriver%20Sonar%20PR%20Checks&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+                assert.callCount(loggerMock.error, 1);
+            });
+        });
+
+        it('does not call set_github_binding when binding already exists', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'gh1',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).resolves({ repository: projectName });
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 2);
+                assert.calledWith(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+            });
+        });
+
+        it('works with non-enterprise Sonar', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'gh1',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).rejects();
+
+            return sonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 2);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/list'
+                    })
+                );
+                assert.calledWith(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+            });
+        });
+
+        it('extracts host from scmContext with colon separator (github:github.com)', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'Sonar [github.com]',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(2).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github:github.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Sonar%20%5Bgithub.com%5D&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+            });
+        });
+
+        it('extracts host from scmContext with colon separator (github:git.example.com)', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'Sonar [git.example.com]',
+                        alm: 'github',
+                        url: 'https://git.example.com'
+                    },
+                    {
+                        key: 'Sonar [github.com]',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(2).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github:git.example.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Sonar%20%5Bgit.example.com%5D&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+            });
+        });
+
+        it('handles scmContext without colon separator (backward compatibility)', () => {
+            const almResponse = {
+                almSettings: [
+                    {
+                        key: 'Sonar [github.com]',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            };
+
+            requestMock.onCall(0).resolves(almResponse);
+            requestMock.onCall(1).rejects();
+            requestMock.onCall(2).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, 'github.com').then(() => {
+                assert.callCount(requestMock, 3);
+                assert.call(
+                    requestMock.thirdCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Sonar%20%5Bgithub.com%5D&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+            });
+        });
+
+        it('returns default Git App name when scmContext is null or undefined', () => {
+            requestMock.onCall(0).rejects();
+            requestMock.onCall(1).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, null).then(() => {
+                assert.callCount(requestMock, 2);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+                assert.call(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Screwdriver%20Sonar%20PR%20Checks&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+                assert.callCount(loggerMock.error, 1);
+            });
+        });
+
+        it('returns default Git App name when scmContext is empty string', () => {
+            requestMock.onCall(0).rejects();
+            requestMock.onCall(1).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, projectName, '').then(() => {
+                assert.callCount(requestMock, 2);
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/get_binding?project=pipeline%3A123'
+                    })
+                );
+                assert.call(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Screwdriver%20Sonar%20PR%20Checks&project=pipeline%3A123&repository=d2lam%2Fmytest&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+                assert.callCount(loggerMock.error, 1);
+            });
         });
     });
 });
