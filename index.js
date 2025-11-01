@@ -115,13 +115,13 @@ class CoverageSonar extends CoverageBase {
             return this.sonarGitAppName;
         }
 
-        const response = await request({
+        const { body } = await request({
             method: 'GET',
             url: `${this.sonarHost}/api/alm_settings/list`,
             username: this.adminToken
         });
 
-        const almSettings = (response && response.almSettings) || [];
+        const almSettings = (body && body.almSettings) || [];
 
         if (almSettings.length === 0) {
             logger.error('No ALM settings found in SonarQube; using default Git App name');
