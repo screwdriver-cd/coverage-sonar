@@ -688,13 +688,15 @@ describe('index test', () => {
         const buildCredentials = { jobId: 1, pipelineId: 123, scmContext: 'github.com' };
         const gitAppEncoded = 'Screwdriver%20Sonar%20PR%20Checks';
         const almResponse = {
-            almSettings: [
-                {
-                    key: 'Screwdriver Sonar PR Checks',
-                    alm: 'github',
-                    url: 'https://api.github.com'
-                }
-            ]
+            body: {
+                almSettings: [
+                    {
+                        key: 'Screwdriver Sonar PR Checks',
+                        alm: 'github',
+                        url: 'https://api.github.com'
+                    }
+                ]
+            }
         };
 
         beforeEach(() => {
@@ -982,13 +984,15 @@ describe('index test', () => {
 
         it('selects the only ALM setting when there is one', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'gh1',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'gh1',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
@@ -1020,18 +1024,20 @@ describe('index test', () => {
 
         it('selects ALM setting by SCM context when multiple exist', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'Sonar [git.example.com]',
-                        alm: 'github',
-                        url: 'https://git.example.com'
-                    },
-                    {
-                        key: 'Sonar [github.com]',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'Sonar [git.example.com]',
+                            alm: 'github',
+                            url: 'https://git.example.com'
+                        },
+                        {
+                            key: 'Sonar [github.com]',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
@@ -1063,7 +1069,9 @@ describe('index test', () => {
 
         it('returns default Git App name when no ALM settings exist', () => {
             const almResponse = {
-                almSettings: []
+                body: {
+                    almSettings: []
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse); // alm_settings/list
@@ -1096,18 +1104,20 @@ describe('index test', () => {
 
         it('returns default Git App name when SCM context does not match any ALM setting', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'Sonar [git.example.com]',
-                        alm: 'github',
-                        url: 'https://git.example.com'
-                    },
-                    {
-                        key: 'Sonar [gitlab.com]',
-                        alm: 'gitlab',
-                        url: 'https://gitlab.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'Sonar [git.example.com]',
+                            alm: 'github',
+                            url: 'https://git.example.com'
+                        },
+                        {
+                            key: 'Sonar [gitlab.com]',
+                            alm: 'gitlab',
+                            url: 'https://gitlab.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse); // alm_settings/list
@@ -1140,13 +1150,15 @@ describe('index test', () => {
 
         it('does not call set_github_binding when binding already exists', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'gh1',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'gh1',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
@@ -1165,13 +1177,15 @@ describe('index test', () => {
 
         it('works with non-enterprise Sonar', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'gh1',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'gh1',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
@@ -1196,13 +1210,15 @@ describe('index test', () => {
 
         it('extracts host from scmContext with colon separator (github:github.com)', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'Sonar [github.com]',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'Sonar [github.com]',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
@@ -1222,18 +1238,20 @@ describe('index test', () => {
 
         it('extracts host from scmContext with colon separator (github:git.example.com)', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'Sonar [git.example.com]',
-                        alm: 'github',
-                        url: 'https://git.example.com'
-                    },
-                    {
-                        key: 'Sonar [github.com]',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'Sonar [git.example.com]',
+                            alm: 'github',
+                            url: 'https://git.example.com'
+                        },
+                        {
+                            key: 'Sonar [github.com]',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
@@ -1253,13 +1271,15 @@ describe('index test', () => {
 
         it('handles scmContext without colon separator (backward compatibility)', () => {
             const almResponse = {
-                almSettings: [
-                    {
-                        key: 'Sonar [github.com]',
-                        alm: 'github',
-                        url: 'https://api.github.com'
-                    }
-                ]
+                body: {
+                    almSettings: [
+                        {
+                            key: 'Sonar [github.com]',
+                            alm: 'github',
+                            url: 'https://api.github.com'
+                        }
+                    ]
+                }
             };
 
             requestMock.onCall(0).resolves(almResponse);
