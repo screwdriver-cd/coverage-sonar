@@ -121,7 +121,7 @@ class CoverageSonar extends CoverageBase {
             username: this.adminToken
         });
 
-        const almSettings = body?.almSettings ?? [];
+        const almSettings = (body && body.almSettings) || [];
 
         if (almSettings.length === 0) {
             logger.error('No ALM settings found in SonarQube; using default Git App name');
