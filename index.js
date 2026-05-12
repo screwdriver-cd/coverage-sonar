@@ -148,6 +148,28 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
+     * Normalize the repository name expected by Sonar's Git binding API.
+     * Upstream callers may pass a broader project name like "org/repo:checkout-root" specific to SD pipelines, but Sonar expects just "org/repo".
+     * @param {String} projectName Sonar project name
+     * @returns {String} Repository slug in org/repo format when available
+     */
+    _getRepositoryName(projectName) {
+        if (!projectName) {
+            return projectName;
+        }
+
+        const [organization, repositoryWithSuffix] = projectName.split('/');
+
+        if (!organization || !repositoryWithSuffix) {
+            return projectName;
+        }
+
+        const repository = repositoryWithSuffix.split(':')[0];
+
+        return `${organization}/${repository}`;
+    }
+
+    /**
      * Configure Git App in SonarQube
      * @param  {String} projectKey  Sonar project key
      * @param  {String} projectName Sonar project name
@@ -158,6 +180,7 @@ class CoverageSonar extends CoverageBase {
         const gitApp = await this._getGitApp(scmContext);
         const gitAppEncoded = encodeURIComponent(gitApp);
         const componentId = encodeURIComponent(projectKey);
+        const repositoryName = this._getRepositoryName(projectName);
 
         // Check if binding exists
         return request({
@@ -167,8 +190,8 @@ class CoverageSonar extends CoverageBase {
         })
             .then(result => {
                 // if project name has been changed, update it
-                if (projectName && (!result.repository || result.repository !== projectName)) {
-                    throw new Error(`Repository name has been changed from ${result.repository} to ${projectName}!`);
+                if (repositoryName && (!result.repository || result.repository !== repositoryName)) {
+                    throw new Error(`Repository name has been changed from ${result.repository} to ${repositoryName}!`);
                 }
 
                 return result;
@@ -177,11 +200,11 @@ class CoverageSonar extends CoverageBase {
                 // if binding does not exist, add it
                 logger.info(`Binding does not exist for Sonar project ${projectKey}, adding`);
 
-                if (!this.sonarEnterprise || !projectName) {
+                if (!this.sonarEnterprise || !repositoryName) {
                     return Promise.resolve();
                 }
 
-                const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${projectName}&summaryCommentEnabled=true&monorepo=false`;
+                const parameters = `almSetting=${gitAppEncoded}&project=${componentId}&repository=${repositoryName}&summaryCommentEnabled=true&monorepo=false`;
 
                 logger.info(`Configuring git app with following parameters, ${parameters}`);
 
