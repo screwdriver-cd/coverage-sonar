@@ -1340,5 +1340,22 @@ describe('index test', () => {
                 assert.callCount(loggerMock.error, 1);
             });
         });
+
+        it('strips non-repository suffixes from projectName before configuring binding', () => {
+            const upstreamProjectName = 'core-mail-services/cmd-workflow:cloud-run-services';
+
+            requestMock.onCall(0).rejects();
+            requestMock.onCall(1).resolves(null);
+
+            return enterpriseSonarPlugin.configureGitApp(projectKey, upstreamProjectName, null).then(() => {
+                assert.callCount(requestMock, 2);
+                assert.call(
+                    requestMock.secondCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/alm_settings/set_github_binding?almSetting=Screwdriver%20Sonar%20PR%20Checks&project=pipeline%3A123&repository=core-mail-services%2Fcmd-workflow&summaryCommentEnabled=true&monorepo=false'
+                    })
+                );
+            });
+        });
     });
 });
