@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const joi = require('joi');
+const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const path = require('path');
 const request = require('screwdriver-request');
@@ -332,6 +333,26 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
+     * Determine which Sonar project keys a build is allowed to act on.
+     * Derived exclusively from the build JWT, never from caller-supplied input.
+     * @method getAuthorizedProjectKeys
+     * @param  {Object}  buildCredentials                   Information stored in a build JWT
+     * @param  {String}  [buildCredentials.jobId]           Screwdriver job ID
+     * @param  {String}  [buildCredentials.pipelineId]      Screwdriver pipeline ID
+     * @param  {String}  [buildCredentials.prParentJobId]   Screwdriver PR parent job ID
+     * @return {Array}                                      Sonar project keys the build may use
+     */
+    getAuthorizedProjectKeys({ jobId, pipelineId, prParentJobId }) {
+        const ids = [
+            ['pipeline', pipelineId],
+            ['job', jobId],
+            ['job', prParentJobId]
+        ];
+
+        return ids.filter(([, id]) => id !== undefined && id !== null).map(([prefix, id]) => `${prefix}:${id}`);
+    }
+
+    /**
      * Determine Sonar project key, project name, and username based on:
      * - SonarQube edition
      * - job annotation
@@ -426,27 +447,44 @@ class CoverageSonar extends CoverageBase {
      * @param {Object} config.buildCredentials  Information stored in a build JWT
      * @param {String} [config.jobName]         Screwdriver job name
      * @param {String} config.pipelineName      Screwdriver pipeline name
-     * @param {String} [config.projectKey]      Sonar project key
+     * @param {String} [config.projectKey]      Sonar project key; must belong to the calling build
      * @param {String} [config.projectName]     Sonar project name
-     * @param {String} [config.username]        Sonar username
+     * @param {String} [config.username]        Ignored; the Sonar username is derived from the project key
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
     _getAccessToken({ scope, username, projectKey, projectName, jobName, pipelineName, buildCredentials }) {
         const { jobId, pipelineId, prParentJobId, scmContext } = buildCredentials;
-        let projectData = { username, projectKey, projectName };
+        const authorizedProjectKeys = this.getAuthorizedProjectKeys({ jobId, pipelineId, prParentJobId });
 
-        if (!username || !projectKey || !projectName || projectName.includes('undefined')) {
-            projectData = this.getProjectData({
-                enterpriseEnabled: this.sonarEnterprise,
-                jobId,
-                jobName,
-                prParentJobId,
-                pipelineId,
-                pipelineName,
-                scope,
-                projectKey
-            });
+        // A build may only ever request a token for its own pipeline or job. See PSECBUGS-115276.
+        if (projectKey && !authorizedProjectKeys.includes(String(projectKey))) {
+            logger.error(
+                `Rejected coverage token request for project ${projectKey} from build in pipeline ${pipelineId} / ` +
+                    `job ${jobId}; authorized: ${authorizedProjectKeys.join(', ')}`
+            );
+
+            return Promise.reject(
+                boom.forbidden(`Not authorized to request a coverage token for project ${projectKey}`)
+            );
+        }
+
+        // The Sonar username is always derived from the (verified) project key, never taken from the caller,
+        // so a build cannot mint a token for an arbitrary Sonar user such as an admin.
+        const derived = this.getProjectData({
+            enterpriseEnabled: this.sonarEnterprise,
+            jobId,
+            jobName,
+            prParentJobId,
+            pipelineId,
+            pipelineName,
+            scope,
+            projectKey
+        });
+        let projectData = derived;
+
+        if (username && projectKey && projectName && !projectName.includes('undefined')) {
+            projectData = { username: derived.username, projectKey, projectName };
         }
 
         const password = uuidv4();

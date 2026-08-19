@@ -913,6 +913,91 @@ describe('index test', () => {
                 );
         });
 
+        it('rejects a project key belonging to another pipeline', () => {
+            return sonarPlugin
+                .getAccessToken({ buildCredentials, projectKey: 'pipeline:999' })
+                .then(() => {
+                    throw new Error('should not get here');
+                })
+                .catch(err => {
+                    assert.strictEqual(err.output.statusCode, 403);
+                    assert.strictEqual(
+                        err.message,
+                        'Not authorized to request a coverage token for project pipeline:999'
+                    );
+                    // nothing may reach Sonar with the admin token
+                    assert.notCalled(requestMock);
+                    assert.calledOnce(loggerMock.error);
+                });
+        });
+
+        it('rejects a project key belonging to another job', () => {
+            return sonarPlugin
+                .getAccessToken({ buildCredentials, projectKey: 'job:999' })
+                .then(() => {
+                    throw new Error('should not get here');
+                })
+                .catch(err => {
+                    assert.strictEqual(err.output.statusCode, 403);
+                    assert.notCalled(requestMock);
+                });
+        });
+
+        it('rejects a project key that only prefixes an authorized key', () => {
+            return sonarPlugin
+                .getAccessToken({ buildCredentials, projectKey: 'pipeline:123:evil' })
+                .then(() => {
+                    throw new Error('should not get here');
+                })
+                .catch(err => {
+                    assert.strictEqual(err.output.statusCode, 403);
+                    assert.notCalled(requestMock);
+                });
+        });
+
+        it('ignores a caller-supplied username and derives it from the project key', () => {
+            return sonarPlugin
+                .getAccessToken({
+                    buildCredentials,
+                    projectKey: 'pipeline:123',
+                    projectName: 'd2lam/mytest',
+                    username: 'admin'
+                })
+                .then(result => {
+                    assert.strictEqual(result, 'accesstoken');
+                    assert.include(
+                        requestMock.getCall(3).args[0].url,
+                        '/api/users/create?login=user-pipeline-123&name=user-pipeline-123&password='
+                    );
+                    assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('login=admin') }));
+                });
+        });
+
+        it('allows the PR parent job key for an enterprise PR build', () => {
+            const prBuildCredentials = { jobId: 1, pipelineId: 123, prParentJobId: 456, scmContext: 'github.com' };
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            // enterprise adds a set_github_binding call, so generateToken lands one slot later
+            requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
+
+            return enterpriseSonarPlugin
+                .getAccessToken({
+                    buildCredentials: prBuildCredentials,
+                    projectKey: 'job:456',
+                    projectName: 'd2lam/mytest',
+                    scope: 'job'
+                })
+                .then(result => {
+                    assert.strictEqual(result, 'accesstoken');
+                    assert.calledWith(
+                        requestMock.firstCall,
+                        sinon.match({
+                            url: 'https://sonar.screwdriver.cd/api/projects/create?project=job:456&name=job:456'
+                        })
+                    );
+                });
+        });
+
         it('it throws err if failed to generate user token', () => {
             requestMock.onCall(5).rejects({
                 statusCode: 500,
