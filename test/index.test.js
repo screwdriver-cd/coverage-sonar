@@ -737,8 +737,10 @@ describe('index test', () => {
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
 
+            // projectName/username are derived, not trusted, so pipelineName - the source they're derived
+            // from - is what the caller must supply.
             return enterpriseSonarPlugin
-                .getAccessToken({ buildCredentials, projectKey, username, projectName })
+                .getAccessToken({ buildCredentials, pipelineName: projectName })
                 .then(result => {
                     assert.callCount(requestMock, 7);
                     assert.call(
@@ -815,16 +817,14 @@ describe('index test', () => {
                 message: '500 - internal server error'
             });
 
-            const projectKey = 'pipeline:123';
             const projectName = 'd2lam/mytest';
-            const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
-                .getAccessToken({ buildCredentials, projectKey, username, projectName })
+                .getAccessToken({ buildCredentials, pipelineName: projectName })
                 .then(result => {
                     assert.callCount(requestMock, 7);
                     assert.callCount(loggerMock.error, 1);
@@ -835,16 +835,14 @@ describe('index test', () => {
         it('does not configure Git App if binding already exists', () => {
             requestMock.onCall(2).resolves({ repository: 'd2lam/mytest' });
 
-            const projectKey = 'pipeline:123';
             const projectName = 'd2lam/mytest';
-            const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(5).resolves({ body: { token: 'accesstoken' } });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
-                .getAccessToken({ buildCredentials, projectKey, username, projectName })
+                .getAccessToken({ buildCredentials, pipelineName: projectName })
                 .then(result => {
                     assert.callCount(requestMock, 6);
                     assert.callCount(loggerMock.error, 0);
@@ -855,16 +853,14 @@ describe('index test', () => {
         it('update Git App if project name has been changed', () => {
             requestMock.onCall(2).resolves({ repository: 'd2lam/oldname' });
 
-            const projectKey = 'pipeline:123';
             const projectName = 'd2lam/newname';
-            const username = 'user-pipeline-123';
 
             enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
             requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
 
             // eslint-disable-next-line max-len
             return enterpriseSonarPlugin
-                .getAccessToken({ buildCredentials, projectKey, username, projectName })
+                .getAccessToken({ buildCredentials, pipelineName: projectName })
                 .then(result => {
                     assert.callCount(requestMock, 7);
                     assert.callCount(loggerMock.error, 0);
@@ -956,10 +952,12 @@ describe('index test', () => {
         });
 
         it('ignores a caller-supplied username and derives it from the project key', () => {
+            // sonarPlugin defaults to job scope, so job:1 (not pipeline:123) is the scope-consistent
+            // authorized key here.
             return sonarPlugin
                 .getAccessToken({
                     buildCredentials,
-                    projectKey: 'pipeline:123',
+                    projectKey: 'job:1',
                     projectName: 'd2lam/mytest',
                     username: 'admin'
                 })
@@ -967,10 +965,26 @@ describe('index test', () => {
                     assert.strictEqual(result, 'accesstoken');
                     assert.include(
                         requestMock.getCall(3).args[0].url,
-                        '/api/users/create?login=user-pipeline-123&name=user-pipeline-123&password='
+                        '/api/users/create?login=user-job-1&name=user-job-1&password='
                     );
                     assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('login=admin') }));
                 });
+        });
+
+        it("ignores an authorized-but-wrong-scope project key and re-derives from the build's own scope", () => {
+            // pipeline:123 is authorized for this build but does not match sonarPlugin's default job scope,
+            // so it must not cross the build into pipeline scope.
+            return sonarPlugin.getAccessToken({ buildCredentials, projectKey: 'pipeline:123' }).then(result => {
+                assert.strictEqual(result, 'accesstoken');
+                assert.calledWith(
+                    requestMock.firstCall,
+                    sinon.match({
+                        url: 'https://sonar.screwdriver.cd/api/projects/create?project=job:1&name=job:1'
+                    })
+                );
+                assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('pipeline:123') }));
+                assert.calledOnce(loggerMock.warn);
+            });
         });
 
         it('allows the PR parent job key for an enterprise PR build', () => {
@@ -984,7 +998,7 @@ describe('index test', () => {
                 .getAccessToken({
                     buildCredentials: prBuildCredentials,
                     projectKey: 'job:456',
-                    projectName: 'd2lam/mytest',
+                    pipelineName: 'd2lam/mytest',
                     scope: 'job'
                 })
                 .then(result => {
@@ -995,6 +1009,59 @@ describe('index test', () => {
                             url: 'https://sonar.screwdriver.cd/api/projects/create?project=job:456&name=job:456'
                         })
                     );
+                    // regression: this short-circuit branch must not put a literal "undefined:undefined"
+                    // repository on the wire when jobName isn't supplied
+                    assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('repository=undefined') }));
+                    assert.calledWith(
+                        requestMock.getCall(3),
+                        sinon.match({
+                            url: sinon.match('repository=d2lam/mytest')
+                        })
+                    );
+                });
+        });
+
+        it('resolves instead of throwing when enterprise job scope has no jobName to check for a PR shape', () => {
+            // Regression: getProjectData's PR-swap block used to call jobName.match() unconditionally,
+            // which threw a TypeError once _getAccessToken started calling getProjectData on every request.
+            const prBuildCredentials = { jobId: 1, pipelineId: 123, prParentJobId: 456, scmContext: 'github.com' };
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+            requestMock.onCall(6).resolves({ body: { token: 'accesstoken' } });
+
+            return enterpriseSonarPlugin
+                .getAccessToken({ buildCredentials: prBuildCredentials, scope: 'job', pipelineName: 'd2lam/mytest' })
+                .then(result => {
+                    assert.strictEqual(result, 'accesstoken');
+                    assert.calledWith(
+                        requestMock.firstCall,
+                        sinon.match({
+                            url: 'https://sonar.screwdriver.cd/api/projects/create?project=job:1&name=job:1'
+                        })
+                    );
+                });
+        });
+
+        it('never trusts a caller-supplied projectName, even alongside an authorized, scope-matching projectKey', () => {
+            // Regression: a prior revision trusted projectName whenever username/projectKey/projectName all
+            // looked "complete," which would let this build point another project's Git App binding at an
+            // arbitrary repository.
+            const projectKey = 'pipeline:123';
+
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+
+            return enterpriseSonarPlugin
+                .getAccessToken({
+                    buildCredentials,
+                    projectKey,
+                    username: 'user-pipeline-123',
+                    projectName: 'victim/private-repo'
+                })
+                .then(result => {
+                    assert.strictEqual(result, 'accesstoken');
+                    requestMock.getCalls().forEach(call => {
+                        assert.notInclude(call.args[0].url, 'victim');
+                    });
                 });
         });
 
