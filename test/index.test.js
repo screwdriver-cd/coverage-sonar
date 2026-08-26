@@ -771,6 +771,32 @@ describe('index test', () => {
                 });
         });
 
+        it('mints a token for a legacy caller but leaves the Git App binding unconfigured', () => {
+            // A not-yet-upgraded API still sends the old resolved tuple (projectKey/username/projectName,
+            // no pipelineName) - see the merge-order discussion on screwdriver#3518 and coverage-sonar#80.
+            // _getAccessToken now always calls getProjectData, which derives projectName from pipelineName;
+            // without it, projectName comes back undefined and configureGitApp has nothing to bind to.
+            // The fix must not break these callers outright: the token itself still has to mint.
+            enterpriseSonarPlugin = new SonarPlugin(enterpriseConfig);
+
+            return enterpriseSonarPlugin
+                .getAccessToken({
+                    buildCredentials,
+                    projectKey: 'pipeline:123',
+                    username: 'user-pipeline-123',
+                    projectName: 'd2lam/mytest'
+                })
+                .then(result => {
+                    assert.strictEqual(result, 'accesstoken');
+                    // alm_settings/list and get_binding still fire, but with no pipelineName to derive a
+                    // repository name from, the binding POST never happens.
+                    assert.callCount(requestMock, 6);
+                    assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('set_github_binding') }));
+                    assert.notCalled(loggerMock.error);
+                    assert.notCalled(loggerMock.warn);
+                });
+        });
+
         it('gets an access token successfully with existing pipeline', () => {
             requestMock.onCall(0).rejects({
                 statusCode: 400,
@@ -971,20 +997,25 @@ describe('index test', () => {
                 });
         });
 
-        it("ignores an authorized-but-wrong-scope project key and re-derives from the build's own scope", () => {
-            // pipeline:123 is authorized for this build but does not match sonarPlugin's default job scope,
-            // so it must not cross the build into pipeline scope.
-            return sonarPlugin.getAccessToken({ buildCredentials, projectKey: 'pipeline:123' }).then(result => {
-                assert.strictEqual(result, 'accesstoken');
-                assert.calledWith(
-                    requestMock.firstCall,
-                    sinon.match({
-                        url: 'https://sonar.screwdriver.cd/api/projects/create?project=job:1&name=job:1'
-                    })
-                );
-                assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('pipeline:123') }));
-                assert.calledOnce(loggerMock.warn);
-            });
+        it("rejects an authorized project key that does not match the build's coverage scope", () => {
+            // pipeline:123 is authorized for this build but does not match sonarPlugin's default job scope.
+            // Its own pipeline and its own job are both always "authorized," so this isn't the reported
+            // IDOR - but silently re-deriving would mint a token for one project while the scanner uploads
+            // to another (commands.txt swallows that 403), so this must fail loudly instead.
+            return sonarPlugin
+                .getAccessToken({ buildCredentials, projectKey: 'pipeline:123' })
+                .then(() => {
+                    throw new Error('should not get here');
+                })
+                .catch(err => {
+                    assert.strictEqual(err.output.statusCode, 403);
+                    assert.strictEqual(
+                        err.message,
+                        'Project pipeline:123 does not match coverage scope job for this build'
+                    );
+                    assert.notCalled(requestMock);
+                    assert.calledOnce(loggerMock.error);
+                });
         });
 
         it('allows the PR parent job key for an enterprise PR build', () => {

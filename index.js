@@ -442,7 +442,7 @@ class CoverageSonar extends CoverageBase {
 
             if (prNameMatch && prNameMatch.length > 1) {
                 jobId = prParentJobId;
-                [, , jobName] = prNameMatch;
+                jobName = prNameMatch[2];
             }
         }
 
@@ -462,14 +462,15 @@ class CoverageSonar extends CoverageBase {
      * @param {Object} config.buildCredentials  Information stored in a build JWT
      * @param {String} [config.jobName]         Screwdriver job name
      * @param {String} config.pipelineName      Screwdriver pipeline name
-     * @param {String} [config.projectKey]      Sonar project key; only honored if it names a project the
-     *                                          calling build is authorized for, and matches the build's own
-     *                                          coverage scope; otherwise ignored (logged as a mismatch)
+     * @param {String} [config.projectKey]      Sonar project key. Rejected with a 403 if it does not name a
+     *                                          project the calling build is authorized for (its own pipeline,
+     *                                          its own job, or its PR parent job), or if it does not match
+     *                                          the build's own configured coverage scope.
      * @param {String} [config.projectName]     Ignored; retained for backward compatibility. Always derived,
      *                                          never taken from the caller. Included in the mismatch warning
-     *                                          message when projectKey or username mismatches, but does not
-     *                                          itself trigger that warning (pipelineName, its derivation
-     *                                          source, is unavailable to legacy callers on every request).
+     *                                          message when username mismatches, but does not itself trigger
+     *                                          that warning (pipelineName, its derivation source, is
+     *                                          unavailable to legacy callers on every request).
      * @param {String} [config.username]        Ignored; retained for backward compatibility and mismatch
      *                                          logging only. Always derived from the project key.
      * @return {Promise}                        An access token that build can use
@@ -493,9 +494,22 @@ class CoverageSonar extends CoverageBase {
 
         // An authorized key is only trusted when it also matches the build's own configured coverage
         // scope - otherwise a build could use an authorized key for the *other* scope (its own pipeline and
-        // its own job are both always "authorized") to cross from job to pipeline scope or back.
+        // its own job are both always "authorized") to cross from job to pipeline scope or back. Reject
+        // outright rather than silently re-deriving: a silent mismatch would mint a token for one project
+        // while the scanner uploads to another, and commands.txt runs the scanner under `|| true`, so that
+        // failure would never surface.
         const coverageScope = this._resolveCoverageScope({ scope, enterpriseEnabled: this.sonarEnterprise });
-        const trustedProjectKey = projectKey && projectKey.split(':')[0] === coverageScope ? projectKey : undefined;
+
+        if (projectKey && projectKey.split(':')[0] !== coverageScope) {
+            logger.error(
+                `Rejected coverage token request for project ${projectKey} from build in pipeline ${pipelineId} / ` +
+                    `job ${jobId}; does not match this build's coverage scope: ${coverageScope}`
+            );
+
+            return Promise.reject(
+                boom.forbidden(`Project ${projectKey} does not match coverage scope ${coverageScope} for this build`)
+            );
+        }
 
         // projectName and username are never trusted here, even when projectKey is: every Sonar call below
         // runs with the instance-wide admin token, so a caller-supplied projectName would let a build point
@@ -509,16 +523,14 @@ class CoverageSonar extends CoverageBase {
             pipelineId,
             pipelineName,
             scope,
-            projectKey: trustedProjectKey
+            projectKey
         });
 
-        if ((projectKey && projectKey !== projectData.projectKey) || (username && username !== projectData.username)) {
+        if (username && username !== projectData.username) {
             logger.warn(
                 `Coverage token request for build in pipeline ${pipelineId} / job ${jobId} supplied ` +
-                    `projectKey=${JSON.stringify(projectKey)}, username=${JSON.stringify(username)}, ` +
-                    `projectName=${JSON.stringify(projectName)}, but derived ` +
-                    `projectKey=${JSON.stringify(projectData.projectKey)}, ` +
-                    `username=${JSON.stringify(projectData.username)} instead; using the derived values`
+                    `username=${JSON.stringify(username)}, projectName=${JSON.stringify(projectName)}, but ` +
+                    `derived username=${JSON.stringify(projectData.username)} instead; using the derived value`
             );
         }
 
