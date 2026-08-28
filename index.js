@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const joi = require('joi');
+const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const path = require('path');
 const request = require('screwdriver-request');
@@ -332,6 +333,41 @@ class CoverageSonar extends CoverageBase {
     }
 
     /**
+     * Determine which Sonar project keys a build is allowed to act on.
+     * Derived exclusively from the build JWT, never from caller-supplied input.
+     * @method getAuthorizedProjectKeys
+     * @param  {Object}  buildCredentials                   Information stored in a build JWT
+     * @param  {String}  [buildCredentials.jobId]           Screwdriver job ID
+     * @param  {String}  [buildCredentials.pipelineId]      Screwdriver pipeline ID
+     * @param  {String}  [buildCredentials.prParentJobId]   Screwdriver PR parent job ID
+     * @return {Array}                                      Sonar project keys the build may use
+     */
+    getAuthorizedProjectKeys({ jobId, pipelineId, prParentJobId }) {
+        const ids = [
+            ['pipeline', pipelineId],
+            ['job', jobId],
+            ['job', prParentJobId]
+        ];
+
+        return ids.filter(([, id]) => id !== undefined && id !== null).map(([prefix, id]) => `${prefix}:${id}`);
+    }
+
+    /**
+     * Resolve the coverage scope: the caller-configured scope when there is one, otherwise the default
+     * for this SonarQube edition (pipeline for enterprise, job for everything else).
+     * @method _resolveCoverageScope
+     * @param  {Object}     config
+     * @param  {String}     [config.scope]              Coverage scope (pipeline or job)
+     * @param  {Boolean}    config.enterpriseEnabled    If enterprise is enabled
+     * @return {String}                                 Resolved coverage scope
+     */
+    _resolveCoverageScope({ scope, enterpriseEnabled }) {
+        const userScope = scope && scope !== 'undefined' ? scope : undefined;
+
+        return userScope || (enterpriseEnabled ? 'pipeline' : 'job');
+    }
+
+    /**
      * Determine Sonar project key, project name, and username based on:
      * - SonarQube edition
      * - job annotation
@@ -382,9 +418,7 @@ class CoverageSonar extends CoverageBase {
             return projectData;
         }
 
-        // Use user-configured scope; otherwise figure out default scope: pipeline scope for enterprise edition, job scope for everything else
-        const userScope = scope && scope !== 'undefined' ? scope : undefined;
-        const coverageScope = userScope || (enterpriseEnabled ? 'pipeline' : 'job');
+        const coverageScope = this._resolveCoverageScope({ scope, enterpriseEnabled });
 
         if (coverageScope === 'pipeline') {
             const componentId = encodeURIComponent(`pipeline:${pipelineId}`);
@@ -399,8 +433,10 @@ class CoverageSonar extends CoverageBase {
             };
         }
 
-        // Use prParentJobId as ID for PRs
-        if (coverageScope === 'job' && enterpriseEnabled) {
+        // Use prParentJobId as ID for PRs. jobName is what identifies a PR job, so without it a PR build
+        // falls back to its own job's project rather than its parent's; callers that cannot resolve jobName
+        // must not crash here.
+        if (coverageScope === 'job' && enterpriseEnabled && jobName) {
             const prRegex = /^PR-(\d+)(?::([\w-]+))?$/;
             const prNameMatch = jobName.match(prRegex);
 
@@ -426,27 +462,76 @@ class CoverageSonar extends CoverageBase {
      * @param {Object} config.buildCredentials  Information stored in a build JWT
      * @param {String} [config.jobName]         Screwdriver job name
      * @param {String} config.pipelineName      Screwdriver pipeline name
-     * @param {String} [config.projectKey]      Sonar project key
-     * @param {String} [config.projectName]     Sonar project name
-     * @param {String} [config.username]        Sonar username
+     * @param {String} [config.projectKey]      Sonar project key. Rejected with a 403 if it does not name a
+     *                                          project the calling build is authorized for (its own pipeline,
+     *                                          its own job, or its PR parent job), or if it does not match
+     *                                          the build's own configured coverage scope.
+     * @param {String} [config.projectName]     Ignored; retained for backward compatibility. Always derived,
+     *                                          never taken from the caller. Included in the mismatch warning
+     *                                          message when username mismatches, but does not itself trigger
+     *                                          that warning (pipelineName, its derivation source, is
+     *                                          unavailable to legacy callers on every request).
+     * @param {String} [config.username]        Ignored; retained for backward compatibility and mismatch
+     *                                          logging only. Always derived from the project key.
      * @return {Promise}                        An access token that build can use
      *                                          to talk to coverage server
      */
     _getAccessToken({ scope, username, projectKey, projectName, jobName, pipelineName, buildCredentials }) {
         const { jobId, pipelineId, prParentJobId, scmContext } = buildCredentials;
-        let projectData = { username, projectKey, projectName };
+        const authorizedProjectKeys = this.getAuthorizedProjectKeys({ jobId, pipelineId, prParentJobId });
 
-        if (!username || !projectKey || !projectName || projectName.includes('undefined')) {
-            projectData = this.getProjectData({
-                enterpriseEnabled: this.sonarEnterprise,
-                jobId,
-                jobName,
-                prParentJobId,
-                pipelineId,
-                pipelineName,
-                scope,
-                projectKey
-            });
+        // A build may only ever request a token for its own pipeline or job.
+        if (projectKey && !authorizedProjectKeys.includes(String(projectKey))) {
+            logger.error(
+                `Rejected coverage token request for project ${projectKey} from build in pipeline ${pipelineId} / ` +
+                    `job ${jobId}; authorized: ${authorizedProjectKeys.join(', ')}`
+            );
+
+            return Promise.reject(
+                boom.forbidden(`Not authorized to request a coverage token for project ${projectKey}`)
+            );
+        }
+
+        // An authorized key is only trusted when it also matches the build's own configured coverage
+        // scope - otherwise a build could use an authorized key for the *other* scope (its own pipeline and
+        // its own job are both always "authorized") to cross from job to pipeline scope or back. Reject
+        // outright rather than silently re-deriving: a silent mismatch would mint a token for one project
+        // while the scanner uploads to another, and commands.txt runs the scanner under `|| true`, so that
+        // failure would never surface.
+        const coverageScope = this._resolveCoverageScope({ scope, enterpriseEnabled: this.sonarEnterprise });
+
+        if (projectKey && projectKey.split(':')[0] !== coverageScope) {
+            logger.error(
+                `Rejected coverage token request for project ${projectKey} from build in pipeline ${pipelineId} / ` +
+                    `job ${jobId}; does not match this build's coverage scope: ${coverageScope}`
+            );
+
+            return Promise.reject(
+                boom.forbidden(`Project ${projectKey} does not match coverage scope ${coverageScope} for this build`)
+            );
+        }
+
+        // projectName and username are never trusted here, even when projectKey is: every Sonar call below
+        // runs with the instance-wide admin token, so a caller-supplied projectName would let a build point
+        // another project's Git App binding at an arbitrary repository, and a caller-supplied username would
+        // let a build mint a token for an arbitrary Sonar account. Both are always derived instead.
+        const projectData = this.getProjectData({
+            enterpriseEnabled: this.sonarEnterprise,
+            jobId,
+            jobName,
+            prParentJobId,
+            pipelineId,
+            pipelineName,
+            scope,
+            projectKey
+        });
+
+        if (username && username !== projectData.username) {
+            logger.warn(
+                `Coverage token request for build in pipeline ${pipelineId} / job ${jobId} supplied ` +
+                    `username=${JSON.stringify(username)}, projectName=${JSON.stringify(projectName)}, but ` +
+                    `derived username=${JSON.stringify(projectData.username)} instead; using the derived value`
+            );
         }
 
         const password = uuidv4();
