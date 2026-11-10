@@ -534,7 +534,9 @@ class CoverageSonar extends CoverageBase {
             );
         }
 
-        const password = uuidv4();
+        // Ensure the generated password contains uppercase, lowercase, numeric,
+        // and special characters to satisfy SonarQube's password requirements.
+        const password = `Aa1!${uuidv4()}`;
 
         return this.createProject(projectData.projectKey)
             .then(() => this.configureGitApp(projectData.projectKey, projectData.projectName, scmContext))
