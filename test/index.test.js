@@ -991,7 +991,7 @@ describe('index test', () => {
                     assert.strictEqual(result, 'accesstoken');
                     assert.include(
                         requestMock.getCall(3).args[0].url,
-                        '/api/users/create?login=user-job-1&name=user-job-1&password='
+                        '/api/users/create?login=user-job-1&name=user-job-1&password=Aa1!'
                     );
                     assert.neverCalledWith(requestMock, sinon.match({ url: sinon.match('login=admin') }));
                 });
